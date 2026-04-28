@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Learning Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <h1>🎓 AI Learning Assistant</h1>
+
+    <h3>Upload Video</h3>
+    <input type="file" id="videoFile">
+    <button onclick="upload()">Upload & Process</button>
+
+    <h3>Ask Something</h3>
+    <input type="text" id="query" placeholder="Ask about video or anything...">
+    <button onclick="ask()">Ask</button>
+
+    <button onclick="getSummary()">Get Summary</button>
+    <button onclick="getQuiz()">Generate Quiz</button>
+
+    <!-- Loader -->
+    <div id="loader" style="display:none; text-align:center; margin-top:10px;">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <div id="output"></div>
+
+    <script src="/static/script.js"></script>
+
+</body>
+</html>
