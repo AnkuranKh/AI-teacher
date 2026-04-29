@@ -151,16 +151,41 @@ async def quiz():
     with open(TRANSCRIPT_PATH, "r", encoding="utf-8") as f:
         text = f.read()
 
+    # 🔥 LIMIT INPUT SIZE (prevents confusion for long videos)
+    if len(text) > 3000:
+       text = text[:3000]
+
     if not text.strip():
         return {"quiz": "⚠️ Transcript is empty. Please upload video again."}
 
     prompt = f"""
-Generate 5 quiz questions from this content.
+You are an AI teacher.
+
+Your task is to create a quiz.
+
+STRICT RULES:
+- Generate exactly 5 questions
+- Do NOT summarize
+- Do NOT explain anything
+- Do NOT give answers
+- ONLY output questions
+- Each question must be clear and specific
+
+Format:
+1. Question
+2. Question
+3. Question
+4. Question
+5. Question
 
 Text:
 {text}
 """
 
     questions = generate_answer("", prompt, False)
+
+# 🛑 Safety guard 
+    if "summary" in questions.lower() or len(questions.strip()) < 20:
+      questions = "⚠️ Quiz generation failed. Try again or upload clearer content."
 
     return {"quiz": questions}
