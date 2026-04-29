@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 from fastapi import FastAPI
 
 # Load embedding model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
 # Paths
 CHUNKS_PATH = "data/index/chunks.pkl"

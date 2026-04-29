@@ -8,7 +8,7 @@ import os   # ✅ ADDED
 EXIT_WORDS = ["exit", "bye", "goodbye", "quit", "see you", "stop"]
 
 # Load embedding model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
 # 🔥 NEW: Expand query for better retrieval
 def expand_query(query):
@@ -18,7 +18,7 @@ def expand_query(query):
 INDEX_PATH = "data/index/index.faiss"
 CHUNKS_PATH = "data/index/chunks.pkl"
 
-# ❌ REMOVE THIS LINE (was causing crash)
+# ❌ REMOVED THIS LINE (was causing crash)
 # index = faiss.read_index(INDEX_PATH)
 
 

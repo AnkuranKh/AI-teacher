@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import hashlib  # ✅ NEW
 
 # Import your existing logic
 from utils.transcribe import transcribe_audio
@@ -28,6 +29,15 @@ os.makedirs("data/transcripts", exist_ok=True)
 os.makedirs("data/index", exist_ok=True)
 
 GLOBAL_CHUNKS = []
+LAST_FILE_HASH = None  # ✅ NEW
+
+# ✅ NEW helper function
+def get_file_hash(file_path):
+    hasher = hashlib.md5()
+    with open(file_path, "rb") as f:
+        hasher.update(f.read())
+    return hasher.hexdigest()
+
 
 # 🌐 UI Route (UPDATED ONLY THIS PART)
 @app.get("/", response_class=HTMLResponse)
@@ -49,7 +59,7 @@ def home(request: Request):
 # 🎥 Upload + Full Pipeline
 @app.post("/upload/")
 async def upload_video(file: UploadFile = File(...)):
-    global GLOBAL_CHUNKS
+    global GLOBAL_CHUNKS, LAST_FILE_HASH  # ✅ UPDATED
 
     # 🧹 remove old index
     if os.path.exists(INDEX_PATH):
@@ -59,6 +69,15 @@ async def upload_video(file: UploadFile = File(...)):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
         shutil.copyfileobj(file.file, temp_video)
         temp_video_path = temp_video.name
+
+    # ✅ DUPLICATE CHECK (NEW)
+    current_hash = get_file_hash(temp_video_path)
+
+    if LAST_FILE_HASH == current_hash:
+        os.remove(temp_video_path)
+        return {"message": "⚠️ This video is already processed. Please upload a new one."}
+
+    LAST_FILE_HASH = current_hash
 
     # convert to audio
     temp_audio_path = temp_video_path.replace(".mp4", ".wav")
@@ -71,7 +90,15 @@ async def upload_video(file: UploadFile = File(...)):
     ])
 
     # transcribe
-    transcript = transcribe_audio(temp_audio_path)
+    transcript, language = transcribe_audio(temp_audio_path)
+
+    if transcript is None:
+        os.remove(temp_video_path)
+        os.remove(temp_audio_path)
+
+        return {
+            "message": "❌ This app supports only English, Hindi, and Assamese videos."
+        }
 
     with open(TRANSCRIPT_PATH, "w", encoding="utf-8") as f:
         f.write(transcript)
@@ -153,7 +180,7 @@ async def quiz():
 
     # 🔥 LIMIT INPUT SIZE (prevents confusion for long videos)
     if len(text) > 3000:
-       text = text[:3000]
+        text = text[:3000]
 
     if not text.strip():
         return {"quiz": "⚠️ Transcript is empty. Please upload video again."}
@@ -184,8 +211,8 @@ Text:
 
     questions = generate_answer("", prompt, False)
 
-# 🛑 Safety guard 
+    # 🛑 Safety guard
     if "summary" in questions.lower() or len(questions.strip()) < 20:
-      questions = "⚠️ Quiz generation failed. Try again or upload clearer content."
+        questions = "⚠️ Quiz generation failed. Try again or upload clearer content."
 
     return {"quiz": questions}

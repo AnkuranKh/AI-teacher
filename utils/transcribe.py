@@ -1,16 +1,33 @@
 from faster_whisper import WhisperModel
 import os
 
-def transcribe_audio(audio_path):
-    print("⏳ Loading model...")
-    model = WhisperModel(
+from faster_whisper import WhisperModel
+import os
+
+print("🚀 Loading Whisper model once...")
+model = WhisperModel(
     "base",
     device="cpu",
     compute_type="int8"
 )
 
+def transcribe_audio(audio_path):
     print("🎧 Transcribing...")
-    segments, _ = model.transcribe(audio_path, language="en")
+
+    # ❗ model is already loaded globally
+    segments, info = model.transcribe(audio_path)
+
+    detected_language = info.language
+    print(f"🌐 Detected language: {detected_language}")
+
+    # ✅ Allow only these languages and Normalize Assamese detection
+    if detected_language == "bn":
+        print("⚠️ Detected Bengali — treating as Assamese")
+
+    ALLOWED_LANGUAGES = ["en", "hi", "as", "bn"]
+
+    if detected_language not in ALLOWED_LANGUAGES:
+        return None, detected_language
 
     full_text = ""
 
@@ -18,8 +35,7 @@ def transcribe_audio(audio_path):
         print(f"[{segment.start:.2f}s - {segment.end:.2f}s] {segment.text}")
         full_text += segment.text + " "
 
-    return full_text
-
+    return full_text, detected_language
 
 if __name__ == "__main__":
     input_path = "data/videos/output.wav"
