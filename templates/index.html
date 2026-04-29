@@ -22,7 +22,22 @@
     <!-- Loader -->
     <div id="loader" style="display:none; text-align:center; margin-top:10px;">
         <div class="spinner"></div>
-        <p>Processing...</p>
+        <p id="progressText">Processing...</p>
+
+        <!-- ✅ NEW: Progress Bar -->
+        <div id="progressContainer" style="display:none; margin-top:10px;">
+            <div style="background:#ddd; border-radius:10px;">
+                <div id="progressBar" style="
+                    width:0%;
+                    height:20px;
+                    background:green;
+                    border-radius:10px;
+                    text-align:center;
+                    color:white;
+                ">0%</div>
+            </div>
+            <p id="progressStatus">Starting...</p>
+        </div>
     </div>
 
     <div id="output"></div>

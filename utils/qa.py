@@ -98,14 +98,18 @@ Answer:
 """
 
     response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "gemma:2b",
-            "prompt": prompt,
-            "stream": False
-        },
-        timeout=60
-    )
+    "http://localhost:11434/api/generate",
+    json={
+        "model": "gemma:2b",
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": 0.7,   # 🔥 controls randomness
+            "top_p": 0.9
+        }
+    },
+    timeout=60
+)
 
     return response.json().get("response", "No response from model.")
 

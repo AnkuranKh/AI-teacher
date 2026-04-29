@@ -1,21 +1,25 @@
 from faster_whisper import WhisperModel
 import os
 
-from faster_whisper import WhisperModel
-import os
-
 print("🚀 Loading Whisper model once...")
+
 model = WhisperModel(
-    "base",
+    "small",                      # 🔥 faster + better than base
     device="cpu",
-    compute_type="int8"
+    compute_type="int8",
+    cpu_threads=os.cpu_count()   # 🔥 use all CPU cores
 )
 
 def transcribe_audio(audio_path):
     print("🎧 Transcribing...")
 
-    # ❗ model is already loaded globally
-    segments, info = model.transcribe(audio_path)
+    # ✅ Faster decoding settings
+    segments, info = model.transcribe(
+        audio_path,
+        beam_size=1,       # 🔥 major speed boost
+        best_of=1,         # 🔥 avoid extra computation
+        temperature=0.0    # 🔥 stable + faster
+    )
 
     detected_language = info.language
     print(f"🌐 Detected language: {detected_language}")
@@ -37,6 +41,7 @@ def transcribe_audio(audio_path):
 
     return full_text, detected_language
 
+
 if __name__ == "__main__":
     input_path = "data/videos/output.wav"
     output_path = "data/transcripts/transcript.txt"
@@ -44,7 +49,7 @@ if __name__ == "__main__":
     # ensure folder exists
     os.makedirs("data/transcripts", exist_ok=True)
 
-    transcript = transcribe_audio(input_path)
+    transcript, _ = transcribe_audio(input_path)
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(transcript)

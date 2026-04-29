@@ -31,6 +31,12 @@ os.makedirs("data/index", exist_ok=True)
 GLOBAL_CHUNKS = []
 LAST_FILE_HASH = None  # ✅ NEW
 
+# ✅ NEW: GLOBAL PROGRESS TRACKER
+UPLOAD_PROGRESS = {
+    "progress": 0,
+    "status": "Idle"
+}
+
 # ✅ NEW helper function
 def get_file_hash(file_path):
     hasher = hashlib.md5()
@@ -38,6 +44,11 @@ def get_file_hash(file_path):
         hasher.update(f.read())
     return hasher.hexdigest()
 
+
+# ✅ NEW: Progress endpoint
+@app.get("/progress/")
+def get_progress():
+    return UPLOAD_PROGRESS
 
 # 🌐 UI Route (UPDATED ONLY THIS PART)
 @app.get("/", response_class=HTMLResponse)
@@ -59,9 +70,12 @@ def home(request: Request):
 # 🎥 Upload + Full Pipeline
 @app.post("/upload/")
 async def upload_video(file: UploadFile = File(...)):
-    global GLOBAL_CHUNKS, LAST_FILE_HASH  # ✅ UPDATED
+    global GLOBAL_CHUNKS, LAST_FILE_HASH, UPLOAD_PROGRESS
 
-    # 🧹 remove old index
+    # 🔄 Start progress
+    UPLOAD_PROGRESS["progress"] = 5
+    UPLOAD_PROGRESS["status"] = "Uploading video..."
+
     if os.path.exists(INDEX_PATH):
         os.remove(INDEX_PATH)
 
@@ -70,7 +84,11 @@ async def upload_video(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, temp_video)
         temp_video_path = temp_video.name
 
-    # ✅ DUPLICATE CHECK (NEW)
+    # 🔄 Update progress
+    UPLOAD_PROGRESS["progress"] = 20
+    UPLOAD_PROGRESS["status"] = "Checking video..."
+
+    # duplicate check
     current_hash = get_file_hash(temp_video_path)
 
     if LAST_FILE_HASH == current_hash:
@@ -78,6 +96,10 @@ async def upload_video(file: UploadFile = File(...)):
         return {"message": "⚠️ This video is already processed. Please upload a new one."}
 
     LAST_FILE_HASH = current_hash
+
+    # 🔄 Update progress
+    UPLOAD_PROGRESS["progress"] = 30
+    UPLOAD_PROGRESS["status"] = "Extracting audio..."
 
     # convert to audio
     temp_audio_path = temp_video_path.replace(".mp4", ".wav")
@@ -88,6 +110,10 @@ async def upload_video(file: UploadFile = File(...)):
         "-c:a", "pcm_s16le",
         temp_audio_path
     ])
+
+    # 🔄 Update progress
+    UPLOAD_PROGRESS["progress"] = 50
+    UPLOAD_PROGRESS["status"] = "Transcribing audio..."
 
     # transcribe
     transcript, language = transcribe_audio(temp_audio_path)
@@ -100,14 +126,30 @@ async def upload_video(file: UploadFile = File(...)):
             "message": "❌ This app supports only English, Hindi, and Assamese videos."
         }
 
+    # 🔄 Update progress
+    UPLOAD_PROGRESS["progress"] = 70
+    UPLOAD_PROGRESS["status"] = "Saving transcript..."
+
     with open(TRANSCRIPT_PATH, "w", encoding="utf-8") as f:
         f.write(transcript)
+
+    # 🔄 Update progress
+    UPLOAD_PROGRESS["progress"] = 80
+    UPLOAD_PROGRESS["status"] = "Creating chunks..."
 
     # chunk
     GLOBAL_CHUNKS = create_chunks(transcript)
 
+    # 🔄 Update progress
+    UPLOAD_PROGRESS["progress"] = 90
+    UPLOAD_PROGRESS["status"] = "Generating embeddings..."
+
     # embeddings
     create_embeddings_from_chunks(GLOBAL_CHUNKS)
+
+    # 🔄 Done
+    UPLOAD_PROGRESS["progress"] = 100
+    UPLOAD_PROGRESS["status"] = "Done"
 
     # cleanup
     os.remove(temp_video_path)
@@ -152,7 +194,9 @@ async def summary():
         return {"summary": "⚠️ Transcript is empty. Please upload video again."}
 
     prompt = f"""
-Summarize this video in a short, engaging way for students with low attention span.
+Summarize this video in a short, engaging way.
+
+Make it slightly unique and varied each time.
 
 Text:
 {text}
@@ -188,22 +232,14 @@ async def quiz():
     prompt = f"""
 You are an AI teacher.
 
-Your task is to create a quiz.
+Generate 5 quiz questions.
+
+Make the questions slightly different each time while staying relevant.
 
 STRICT RULES:
-- Generate exactly 5 questions
-- Do NOT summarize
-- Do NOT explain anything
-- Do NOT give answers
-- ONLY output questions
-- Each question must be clear and specific
-
-Format:
-1. Question
-2. Question
-3. Question
-4. Question
-5. Question
+- Exactly 5 questions
+- No answers
+- No explanation
 
 Text:
 {text}
