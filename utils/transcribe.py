@@ -16,9 +16,9 @@ def transcribe_audio(audio_path):
     # ✅ Faster decoding settings
     segments, info = model.transcribe(
         audio_path,
-        beam_size=1,       # 🔥 major speed boost
-        best_of=1,         # 🔥 avoid extra computation
-        temperature=0.0    # 🔥 stable + faster
+        beam_size=5,        # 🔥 better accuracy
+        best_of=3,          # 🔥 better candidate selection
+        temperature=0.2     # 🔥 avoids rigid decoding
     )
 
     detected_language = info.language

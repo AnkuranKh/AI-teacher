@@ -27,7 +27,7 @@ def create_embeddings():
     print(f"📄 Loaded {len(chunks)} chunks")
 
     # Convert text → embeddings
-    embeddings = model.encode(chunks)
+    embeddings = model.encode(chunks, normalize_embeddings=True)
 
     print("🧠 Embeddings created")
 
@@ -49,7 +49,7 @@ def create_embeddings_from_chunks(chunks):
     if os.path.exists(INDEX_PATH):
         os.remove(INDEX_PATH)
 
-    embeddings = model.encode(chunks)
+    embeddings = model.encode(chunks, normalize_embeddings=True)
 
     dimension = embeddings.shape[1]
     index = faiss.IndexFlatL2(dimension)

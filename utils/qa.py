@@ -22,29 +22,39 @@ CHUNKS_PATH = "data/index/chunks.pkl"
 # index = faiss.read_index(INDEX_PATH)
 
 
-def ask_question(query, chunks, k=10):
-    # 🛑 Check if index exists
+def extract_last_topic(chat_history):
+    if not chat_history:
+        return ""
+    return chat_history[-1][0].replace("?", "").strip()
+
+
+def ask_question(query, chunks, k=20, chat_history=None):
     if not os.path.exists(INDEX_PATH):
         return ["⚠️ No index found. Please upload a video first."]
 
-    # ✅ Load index ONLY when needed
     index = faiss.read_index(INDEX_PATH)
 
-    # Convert query to embedding
-    expanded_query = expand_query(query)
+    # 🔥 STRONG QUERY BUILD (REAL FIX)
+    if chat_history:
+        last_topic = extract_last_topic(chat_history)
+
+        # ALWAYS combine (not just for "it/this")
+        query = f"{last_topic}. {query}"
+
+    # 🔥 stronger expansion
+    expanded_query = query + " explanation working speed reason advantage difference bandwidth latency"
+
     query_vector = model.encode([expanded_query], normalize_embeddings=True)
 
-    # Search similar chunks
     distances, indices = index.search(np.array(query_vector), k)
 
-    # ✅ Safe indexing (prevents crash)
     results = [chunks[i] for i in indices[0] if i < len(chunks)]
 
-    # 🔥 NEW: fallback if no good results
     if not results:
-       results = [chunks[0], chunks[len(chunks)//2], chunks[-1]]
+        results = [chunks[0], chunks[len(chunks)//2], chunks[-1]]
 
     return results
+
 
 
 # detect if question is about video
@@ -63,19 +73,47 @@ def is_video_question(query):
     return False
 
 
+#follow-up detector
+def is_follow_up_query(query):
+    query = query.lower().strip()
+
+    # 🔥 Strong signals (pronouns → high confidence follow-up)
+    pronoun_signals = ["it", "this", "that", "they", "them", "he", "she"]
+
+    # 🔥 Weak signals (only if query is short)
+    weak_signals = ["why", "how", "what about", "and", "then"]
+
+    # ✅ Rule 1 — Pronoun present → follow-up
+    if any(word in query for word in pronoun_signals):
+        return True
+
+    # ✅ Rule 2 — Short question + weak signal → follow-up
+    if len(query.split()) <= 6 and any(word in query for word in weak_signals):
+        return True
+
+    return False
+
+
+
 # 🔁 dual-mode answer
 def generate_answer(context, question, use_context=True):
 
     if use_context:
         prompt = f"""
-You are an expert teacher helping a student understand a lesson.
+You are a friendly and knowledgeable teacher helping a student understand a lesson from a video.
 
-Follow these rules:
-1. Use the provided context if it contains relevant information.
-2. If the context is not sufficient, you can use your own knowledge.
-3. Prefer context over general knowledge when both are available.
-4. Explain clearly and simply.
-5. If the topic is related to the video, try to connect your answer with the video.
+You are continuing a conversation with a student.
+
+Rules:
+- Always answer the question directly.
+- Use the provided context as the main source of truth.
+- The question refers to the previous topic unless clearly changed.
+- Resolve words like "it", "this", "that" using the previous topic.
+- Do NOT rewrite the question.
+- Do NOT show intermediate reasoning.
+- Do NOT explain what you are doing.
+- Do NOT give generic or unrelated answers.
+- If the answer is not in the context, say you are not sure.
 
 Context:
 {context}
@@ -83,7 +121,7 @@ Context:
 Question:
 {question}
 
-Answer (in clear teaching style):
+Answer:
 """
     else:
         prompt = f"""

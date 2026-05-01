@@ -2,23 +2,13 @@ import os
 import pickle
 
 def chunk_text(text, chunk_size=500, overlap=100):
-    sentences = text.split(". ")
+    words = text.split()  # 🔥 CHANGE: word-based instead of sentence split
 
     chunks = []
-    current_chunk = ""
-
-    for sentence in sentences:
-        # add sentence if within limit
-        if len(current_chunk) + len(sentence) < chunk_size:
-            current_chunk += sentence + ". "
-        else:
-            chunks.append(current_chunk.strip())
-
-            # overlap handling (optional but useful)
-            current_chunk = sentence + ". "
-
-    if current_chunk:
-        chunks.append(current_chunk.strip())
+    
+    for i in range(0, len(words), chunk_size - overlap):
+        chunk = " ".join(words[i:i + chunk_size])
+        chunks.append(chunk.strip())
 
     return chunks
 
