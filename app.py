@@ -10,6 +10,7 @@ import hashlib
 import glob
 import re
 
+
 # Import your existing logic
 from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
@@ -244,6 +245,22 @@ async def chat(query: str):
             is_follow_up = False
 
         if is_video_question(q):
+    
+          # 🔥 ALWAYS retrieve (no break in old logic)
+            results = ask_question(q, GLOBAL_CHUNKS, chat_history=CHAT_HISTORY)
+            new_context = "\n\n".join(results[:3])
+
+          # 🔥 HYBRID CONTEXT (key change)
+            if is_follow_up and LAST_CONTEXT:
+               context = LAST_CONTEXT + "\n\n" + new_context
+            else:
+               context = new_context
+          
+          # 🔥 SAFETY LIMIT
+            context = context[-3000:]
+          
+          # 🔥 update memory (same as before)
+            LAST_CONTEXT = context
 
             # 🟢 MODE 1 — RAG
             if not is_follow_up:
