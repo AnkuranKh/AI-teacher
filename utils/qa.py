@@ -1,6 +1,6 @@
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer,CrossEncoder 
 import requests
 import os   # ✅ ADDED
 
@@ -10,7 +10,10 @@ EXIT_WORDS = ["exit", "bye", "goodbye", "quit", "see you", "stop"]
 # Load embedding model
 model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
-# 🔥 NEW: Expand query for better retrieval
+# Re-ranking model
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+#  Expand query for better retrieval
 def expand_query(query):
     return query + " explanation definition concept details"
 
@@ -20,6 +23,32 @@ CHUNKS_PATH = "data/index/chunks.pkl"
 
 # ❌ REMOVED THIS LINE (was causing crash)
 # index = faiss.read_index(INDEX_PATH)
+
+#  Re-ranking function
+def rerank_chunks(query, chunks, top_n=5):
+    if not chunks:
+        return []
+
+    try:
+        # Pair query with each chunk
+        pairs = [(query, chunk) for chunk in chunks]
+
+        # Get relevance scores
+        scores = reranker.predict(pairs)
+
+        # Combine chunks with scores
+        scored_chunks = list(zip(chunks, scores))
+
+        # Sort by score (highest first)
+        ranked = sorted(scored_chunks, key=lambda x: x[1], reverse=True)
+
+        # Return top N best chunks
+        return [chunk for chunk, score in ranked[:top_n]]
+
+    except Exception as e:
+        print("Re-ranking failed:", e)
+        return chunks[:top_n]  # fallback
+
 
 
 def extract_last_topic(chat_history):
@@ -51,9 +80,12 @@ def ask_question(query, chunks, k=20, chat_history=None):
     results = [chunks[i] for i in indices[0] if i < len(chunks)]
 
     if not results:
-        results = [chunks[0], chunks[len(chunks)//2], chunks[-1]]
+       results = [chunks[0], chunks[len(chunks)//2], chunks[-1]]
 
-    return results
+    # 🔥 NEW: Apply re-ranking
+    reranked_results = rerank_chunks(query, results, top_n=5)
+
+    return reranked_results
 
 
 
