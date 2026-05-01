@@ -8,9 +8,26 @@
 
     <h1>🧠 Conversational Retrieval System (RAG + Memory + NLP)</h1>
 
-    <h3>Upload Video</h3>
-    <input type="file" id="videoFile">
-    <button onclick="upload()">Upload & Process</button>
+    <!-- ✅ UPDATED INPUT SECTION -->
+    <div class="input-section">
+
+        <!-- 🔵 Upload Video -->
+        <div class="upload-box">
+            <h3>📁 Upload Video</h3>
+            <input type="file" id="videoFile">
+            <button onclick="upload()">Upload & Process</button>
+        </div>
+
+        <div class="divider">OR</div>
+
+        <!-- 🔴 YouTube Link -->
+        <div class="youtube-box">
+            <h3>🔗 YouTube Link</h3>
+            <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here...">
+            <button onclick="uploadYouTube()">Process YouTube Video</button>
+        </div>
+
+    </div>
 
     <h3>Ask Something</h3>
     <input type="text" id="query" placeholder="Ask about video or anything...">
@@ -24,7 +41,7 @@
         <div class="spinner"></div>
         <p id="progressText">Processing...</p>
 
-        <!-- ✅ NEW: Progress Bar -->
+        <!-- ✅ Progress Bar -->
         <div id="progressContainer" style="display:none; margin-top:10px;">
             <div style="background:#ddd; border-radius:10px;">
                 <div id="progressBar" style="

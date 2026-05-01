@@ -39,6 +39,30 @@ button:hover {
 }
 
 
+/* ✅ NEW: Input section layout */
+
+.input-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.upload-box,
+.youtube-box {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+
 /* Loader */
 
 .spinner {

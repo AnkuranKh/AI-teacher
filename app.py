@@ -9,6 +9,7 @@ import tempfile
 import hashlib 
 import glob
 import re
+import yt_dlp
 
 
 # Import your existing logic
@@ -45,6 +46,35 @@ UPLOAD_PROGRESS = {
     "progress": 0,
     "status": "Idle"
 }
+
+#DOWNLOAD THROUGH LINKS
+def download_youtube_audio(url):
+    temp_dir = tempfile.gettempdir()
+    output_path = os.path.join(temp_dir, "%(id)s.%(ext)s")
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'outtmpl': output_path,
+        'quiet': True,
+        'noplaylist': True,
+        'geo_bypass': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android']
+            }
+        },
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'wav',
+            'preferredquality': '192',
+        }],
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+        filename = ydl.prepare_filename(info)
+
+        return os.path.splitext(filename)[0] + ".wav"
 
 # ✅ NEW helper function
 def get_file_hash(file_path):
@@ -140,11 +170,13 @@ async def upload_video(file: UploadFile = File(...)):
     temp_audio_path = temp_video_path.replace(".mp4", ".wav")
 
     subprocess.run([
-        "ffmpeg", "-i", temp_video_path,
-        "-ar", "16000", "-ac", "1",
-        "-c:a", "pcm_s16le",
-        temp_audio_path
-    ])
+    "ffmpeg", "-i", temp_video_path,
+    "-vn",                    # 🔥 ignore video completely
+    "-acodec", "pcm_s16le",
+    "-ar", "16000",
+    "-ac", "1",
+    temp_audio_path
+])
 
     # 🔄 Update progress
     UPLOAD_PROGRESS["progress"] = 50
@@ -191,6 +223,76 @@ async def upload_video(file: UploadFile = File(...)):
     os.remove(temp_audio_path)
 
     return {"message": "✅ Video processed successfully"}
+
+#UPLOAD THROUGH LINKS
+@app.post("/upload-youtube/")
+async def upload_youtube(url: str):
+
+    global GLOBAL_CHUNKS, LAST_FILE_HASH, UPLOAD_PROGRESS, CHAT_HISTORY, LAST_CONTEXT
+
+    LAST_CONTEXT = ""
+    CHAT_HISTORY = []
+
+    UPLOAD_PROGRESS["progress"] = 5
+    UPLOAD_PROGRESS["status"] = "Downloading YouTube audio..."
+
+    try:
+        audio_path = download_youtube_audio(url)   # 🔥 returns .wav
+    except Exception as e:
+        return {"message": f"❌ Failed to download video: {str(e)}"}
+
+    # hash check
+    UPLOAD_PROGRESS["progress"] = 20
+    UPLOAD_PROGRESS["status"] = "Checking content..."
+
+    current_hash = get_file_hash(audio_path)
+
+    if LAST_FILE_HASH == current_hash:
+        os.remove(audio_path)
+        return {"message": "⚠️ This video is already processed."}
+
+    LAST_FILE_HASH = current_hash
+
+    # 🔥 NO FFMPEG HERE
+    UPLOAD_PROGRESS["progress"] = 30
+    UPLOAD_PROGRESS["status"] = "Preparing audio..."
+
+    # transcription
+    UPLOAD_PROGRESS["progress"] = 50
+    UPLOAD_PROGRESS["status"] = "Transcribing..."
+
+    transcript, language = transcribe_audio(audio_path)
+
+    if transcript is None:
+        os.remove(audio_path)
+        return {"message": "❌ Unsupported language."}
+
+    # save transcript
+    UPLOAD_PROGRESS["progress"] = 70
+    UPLOAD_PROGRESS["status"] = "Saving transcript..."
+
+    with open(TRANSCRIPT_PATH, "w", encoding="utf-8") as f:
+        f.write(transcript)
+
+    # chunking
+    UPLOAD_PROGRESS["progress"] = 80
+    UPLOAD_PROGRESS["status"] = "Chunking..."
+
+    GLOBAL_CHUNKS = create_chunks(transcript)
+
+    # embeddings
+    UPLOAD_PROGRESS["progress"] = 90
+    UPLOAD_PROGRESS["status"] = "Creating embeddings..."
+
+    create_embeddings_from_chunks(GLOBAL_CHUNKS)
+
+    UPLOAD_PROGRESS["progress"] = 100
+    UPLOAD_PROGRESS["status"] = "Done"
+
+    # cleanup
+    os.remove(audio_path)
+
+    return {"message": "✅ YouTube video processed successfully"}
 
 #SPLIT QUESTIONS
 def split_questions(query):

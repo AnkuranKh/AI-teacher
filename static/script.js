@@ -80,6 +80,42 @@ async function upload() {
 }
 
 //////////////////////////////////////////////////////////
+// ✅ NEW: YOUTUBE UPLOAD FUNCTION
+//////////////////////////////////////////////////////////
+
+async function uploadYouTube() {
+    let url = document.getElementById("youtubeUrl").value;
+
+    if (!url) {
+        alert("Please enter a YouTube URL");
+        return;
+    }
+
+    showLoader();
+
+    // ✅ SHOW PROGRESS BAR
+    document.getElementById("progressContainer").style.display = "block";
+
+    // ✅ START TRACKING
+    trackProgress();
+
+    updateProgress("⬇️ Downloading YouTube video...");
+
+    let res = await fetch("/upload-youtube/?url=" + encodeURIComponent(url), {
+        method: "POST"
+    });
+
+    let data = await res.json();
+
+    updateProgress("✅ Done!");
+
+    await new Promise(r => setTimeout(r, 500));
+
+    hideLoader();
+    document.getElementById("output").innerText = data.message;
+}
+
+//////////////////////////////////////////////////////////
 // 🚫 NO CHANGES BELOW (kept exactly same)
 //////////////////////////////////////////////////////////
 
