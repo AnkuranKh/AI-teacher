@@ -63,12 +63,6 @@ def ask_question(query, chunks, k=20, chat_history=None):
 
     index = faiss.read_index(INDEX_PATH)
 
-    # 🔥 STRONG QUERY BUILD (REAL FIX)
-    if chat_history:
-        last_topic = extract_last_topic(chat_history)
-
-        # ALWAYS combine (not just for "it/this")
-        query = f"{last_topic}. {query}"
 
     # 🔥 stronger expansion
     expanded_query = query + " explanation working speed reason advantage difference bandwidth latency"

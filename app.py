@@ -332,12 +332,20 @@ async def chat(query: str):
                 current_topic = "fiber internet"
             elif "cable" in q.lower():
                 current_topic = "cable internet"
-            elif len(q.split()) > 4:
-                # 🔥 FIXED — extract only topic words
-                current_topic = " ".join(q.split()[-2:])
+            elif len(q.split()) > 3:
+                current_topic = q  # fallback (keep full question if needed)
 
         elif not current_topic and CHAT_HISTORY:
-            current_topic = CHAT_HISTORY[-1][0]
+               last_q = CHAT_HISTORY[-1][0].lower()
+
+               if "slr" in last_q:
+                 current_topic = "SLR"
+               elif "dslr" in last_q:
+                 current_topic = "DSLR"
+               elif "fiber" in last_q:
+                 current_topic = "fiber internet"
+               elif "cable" in last_q:
+                current_topic = "cable internet"
 
         # 🔥 STEP 3 — resolve pronouns
         if is_follow_up and current_topic:
