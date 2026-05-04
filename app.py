@@ -346,11 +346,19 @@ async def chat(query: str):
             # 🔥 IMPORTANT FIX — now treat as normal query
             is_follow_up = False
 
-        if is_video_question(q):
+        if GLOBAL_CHUNKS:
     
           # 🔥 ALWAYS retrieve (no break in old logic)
             results = ask_question(q, GLOBAL_CHUNKS, chat_history=CHAT_HISTORY)
-            new_context = "\n\n".join(results[:3])
+            print("\n================ DEBUG =================")
+            print("QUERY:", q)
+
+            for i, r in enumerate(results[:5]):
+              print(f"\nCHUNK {i+1}:")
+              print(r[:200])  # print first 200 chars only
+
+            print("========================================\n")
+            new_context = "\n\n".join(results[:5])
 
           # 🔥 HYBRID CONTEXT (key change)
             if is_follow_up and LAST_CONTEXT:
@@ -367,7 +375,7 @@ async def chat(query: str):
             # 🟢 MODE 1 — RAG
             if not is_follow_up:
                 results = ask_question(q, GLOBAL_CHUNKS, chat_history=CHAT_HISTORY)
-                new_context = "\n\n".join(results[:3])
+                new_context = "\n\n".join(results[:5])
 
                 context = new_context
                 LAST_CONTEXT = context
