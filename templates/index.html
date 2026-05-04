@@ -6,58 +6,65 @@
 </head>
 <body>
 
-    <h1>🧠 Conversational Retrieval System (RAG + Memory + NLP)</h1>
+    <div class="container">
 
-    <!-- ✅ UPDATED INPUT SECTION -->
-    <div class="input-section">
+        <h1>🧠 Conversational Retrieval System</h1>
 
-        <!-- 🔵 Upload Video -->
-        <div class="upload-box">
-            <h3>📁 Upload Video</h3>
-            <input type="file" id="videoFile">
-            <button onclick="upload()">Upload & Process</button>
-        </div>
+        <!-- 🔼 UPLOAD SECTION -->
+        <div class="top-section">
+            <div class="input-section">
 
-        <div class="divider">OR</div>
+                <div class="upload-box">
+                    <h3>📁 Upload Video</h3>
+                    <input type="file" id="videoFile">
+                    <button onclick="upload()">Upload & Process</button>
+                </div>
 
-        <!-- 🔴 YouTube Link -->
-        <div class="youtube-box">
-            <h3>🔗 YouTube Link</h3>
-            <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here...">
-            <button onclick="uploadYouTube()">Process YouTube Video</button>
-        </div>
+                <div class="divider">OR</div>
 
-    </div>
+                <div class="youtube-box">
+                    <h3>🔗 YouTube Link</h3>
+                    <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here...">
+                    <button onclick="uploadYouTube()">Process</button>
+                </div>
 
-    <h3>Ask Something</h3>
-    <input type="text" id="query" placeholder="Ask about video or anything...">
-    <button onclick="ask()">Ask</button>
-
-    <button onclick="getSummary()">Get Summary</button>
-    <button onclick="getQuiz()">Generate Quiz</button>
-
-    <!-- Loader -->
-    <div id="loader" style="display:none; text-align:center; margin-top:10px;">
-        <div class="spinner"></div>
-        <p id="progressText">Processing...</p>
-
-        <!-- ✅ Progress Bar -->
-        <div id="progressContainer" style="display:none; margin-top:10px;">
-            <div style="background:#ddd; border-radius:10px;">
-                <div id="progressBar" style="
-                    width:0%;
-                    height:20px;
-                    background:green;
-                    border-radius:10px;
-                    text-align:center;
-                    color:white;
-                ">0%</div>
             </div>
-            <p id="progressStatus">Starting...</p>
         </div>
-    </div>
 
-    <div id="output"></div>
+        <!-- 🎥 VIDEO PLAYER -->
+        <div class="video-container">
+            <video id="videoPlayer" controls></video>
+        </div>
+
+        <!-- 💬 CHAT -->
+        <div id="chatBox" class="chat-box"></div>
+
+        <!-- 🧠 INPUT -->
+        <div class="input-bar">
+            <input type="text" id="query" placeholder="Ask about the video...">
+            <button onclick="ask()">Ask</button>
+        </div>
+
+        <!-- ⚡ ACTIONS -->
+        <div class="actions">
+            <button onclick="getSummary()">📖 Summary</button>
+            <button onclick="getQuiz()">📝 Quiz</button>
+        </div>
+
+        <!-- ⏳ LOADER -->
+        <div id="loader" style="display:none; text-align:center;">
+            <div class="spinner"></div>
+            <p id="progressText">Processing...</p>
+
+            <div id="progressContainer" style="display:none;">
+                <div class="progress-bg">
+                    <div id="progressBar" class="progress-bar">0%</div>
+                </div>
+                <p id="progressStatus">Starting...</p>
+            </div>
+        </div>
+
+    </div>
 
     <script src="/static/script.js"></script>
 

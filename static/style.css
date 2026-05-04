@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    max-width: 700px;
+    max-width: 800px;
     margin: auto;
     padding: 20px;
     background: #f5f5f5;
@@ -10,41 +10,21 @@ h1 {
     text-align: center;
 }
 
-input,
-button {
-    padding: 10px;
-    margin: 5px 0;
-    width: 100%;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-}
 
-button {
-    background: black;
-    color: white;
-    cursor: pointer;
-}
+/* Layout */
 
-button:hover {
-    background: #333;
-}
-
-#output {
-    margin-top: 20px;
-    padding: 15px;
-    background: white;
-    border-radius: 10px;
-    min-height: 100px;
-    white-space: pre-wrap;
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
 
-/* ✅ NEW: Input section layout */
+/* Upload */
 
 .input-section {
     display: flex;
     gap: 20px;
-    margin-bottom: 20px;
 }
 
 .upload-box,
@@ -60,6 +40,108 @@ button:hover {
     align-items: center;
     justify-content: center;
     font-weight: bold;
+}
+
+
+/* Video */
+
+.video-container {
+    background: black;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+video {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 10px;
+}
+
+
+/* Inputs */
+
+input {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    width: 100%;
+}
+
+
+/* Buttons */
+
+button {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: black;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #333;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+
+/* Chat */
+
+.chat-box {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 75%;
+    white-space: pre-wrap;
+}
+
+.user {
+    align-self: flex-end;
+    background: black;
+    color: white;
+}
+
+.ai {
+    align-self: flex-start;
+    background: #eee;
+}
+
+#typing {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+
+/* Input bar */
+
+.input-bar {
+    display: flex;
+    gap: 10px;
+}
+
+.input-bar input {
+    flex: 1;
+}
+
+
+/* Actions */
+
+.actions {
+    display: flex;
+    gap: 10px;
 }
 
 
@@ -82,4 +164,28 @@ button:hover {
     100% {
         transform: rotate(360deg);
     }
+}
+
+
+/* Progress */
+
+.progress-bg {
+    background: #ddd;
+    border-radius: 10px;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 20px;
+    background: green;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+}
+
+
+/* Disabled */
+
+input:disabled {
+    background: #eee;
 }

@@ -1,173 +1,157 @@
 function showLoader() {
     document.getElementById("loader").style.display = "block";
-    document.getElementById("progressText").innerText = "Processing...";
 }
 
 function hideLoader() {
     document.getElementById("loader").style.display = "none";
-
-    // ✅ hide progress bar after done
     document.getElementById("progressContainer").style.display = "none";
 }
 
-// ✅ NEW FUNCTION
 function updateProgress(text) {
     document.getElementById("progressText").innerText = text;
 }
 
-//////////////////////////////////////////////////////////
-// ✅ NEW: REAL BACKEND PROGRESS TRACKING
-//////////////////////////////////////////////////////////
-
 async function trackProgress() {
     let interval = setInterval(async() => {
-        try {
-            let res = await fetch("/progress/");
-            let data = await res.json();
+        let res = await fetch("/progress/");
+        let data = await res.json();
 
-            let bar = document.getElementById("progressBar");
-            let status = document.getElementById("progressStatus");
+        let bar = document.getElementById("progressBar");
+        let status = document.getElementById("progressStatus");
 
-            bar.style.width = data.progress + "%";
-            bar.innerText = data.progress + "%";
-            status.innerText = data.status;
+        bar.style.width = data.progress + "%";
+        bar.innerText = data.progress + "%";
+        status.innerText = data.status;
 
-            if (data.progress >= 100) {
-                clearInterval(interval);
-            }
-        } catch (err) {
-            console.log("Progress fetch error:", err);
-        }
+        if (data.progress >= 100) clearInterval(interval);
     }, 1000);
 }
 
-//////////////////////////////////////////////////////////
-
+/* Upload */
 async function upload() {
-    let file = document.getElementById("videoFile").files[0];
+    document.getElementById("chatBox").innerHTML = "";
 
-    if (!file) {
-        alert("Please select a file");
-        return;
-    }
+    let file = document.getElementById("videoFile").files[0];
+    if (!file) return alert("Select a file");
+
+    // 🎥 SHOW VIDEO
+    let videoPlayer = document.getElementById("videoPlayer");
+    videoPlayer.src = URL.createObjectURL(file);
+    videoPlayer.load();
 
     let formData = new FormData();
     formData.append("file", file);
 
     showLoader();
+    document.getElementById("query").disabled = true;
 
-    // ✅ SHOW PROGRESS BAR
     document.getElementById("progressContainer").style.display = "block";
-
-    // ✅ START TRACKING
     trackProgress();
 
-    updateProgress("📤 Uploading video...");
-
-    let res = await fetch("/upload/", {
-        method: "POST",
-        body: formData
-    });
-
+    let res = await fetch("/upload/", { method: "POST", body: formData });
     let data = await res.json();
 
-    updateProgress("✅ Done!");
-
-    await new Promise(r => setTimeout(r, 500));
-
     hideLoader();
-    document.getElementById("output").innerText = data.message;
+    document.getElementById("query").disabled = false;
+
+    addMessage(data.message, "ai");
 }
 
-//////////////////////////////////////////////////////////
-// ✅ NEW: YOUTUBE UPLOAD FUNCTION
-//////////////////////////////////////////////////////////
-
+/* YouTube */
 async function uploadYouTube() {
+    document.getElementById("chatBox").innerHTML = "";
     let url = document.getElementById("youtubeUrl").value;
 
-    if (!url) {
-        alert("Please enter a YouTube URL");
-        return;
-    }
+    if (!url) return alert("Enter URL");
 
     showLoader();
+    document.getElementById("query").disabled = true;
 
-    // ✅ SHOW PROGRESS BAR
     document.getElementById("progressContainer").style.display = "block";
-
-    // ✅ START TRACKING
     trackProgress();
 
-    updateProgress("⬇️ Downloading YouTube video...");
-
-    let res = await fetch("/upload-youtube/?url=" + encodeURIComponent(url), {
-        method: "POST"
-    });
-
+    let res = await fetch("/upload-youtube/?url=" + encodeURIComponent(url), { method: "POST" });
     let data = await res.json();
 
-    updateProgress("✅ Done!");
-
-    await new Promise(r => setTimeout(r, 500));
-
     hideLoader();
-    document.getElementById("output").innerText = data.message;
+    document.getElementById("query").disabled = false;
+
+    addMessage(data.message, "ai");
 }
 
-//////////////////////////////////////////////////////////
-// 🚫 NO CHANGES BELOW (kept exactly same)
-//////////////////////////////////////////////////////////
-
+/* Ask */
 async function ask() {
-    let query = document.getElementById("query").value;
+    let input = document.getElementById("query");
+    let query = input.value;
+    if (!query) return;
 
-    showLoader();
-    updateProgress("💭 Understanding question...");
+    input.disabled = true;
 
-    await new Promise(r => setTimeout(r, 300));
+    addMessage(query, "user");
+    showTyping();
 
-    updateProgress("🔎 Fetching context...");
-    await new Promise(r => setTimeout(r, 500));
-
-    updateProgress("🧠 Generating answer...");
-
-    let res = await fetch("/chat/?query=" + encodeURIComponent(query), {
-        method: "POST"
-    });
-
+    let res = await fetch("/chat/?query=" + encodeURIComponent(query), { method: "POST" });
     let data = await res.json();
 
-    hideLoader();
-    document.getElementById("output").innerText = data.answer;
+    removeTyping();
+    addMessage(data.answer, "ai");
+
+    input.disabled = false;
+    input.value = "";
 }
 
+/* Summary */
 async function getSummary() {
     showLoader();
-    updateProgress("📖 Reading transcript...");
-
-    await new Promise(r => setTimeout(r, 400));
-
-    updateProgress("✂️ Summarizing content...");
-
     let res = await fetch("/summary/");
     let data = await res.json();
-
     hideLoader();
-    document.getElementById("output").innerText = data.summary;
+
+    addMessage("📖 Summary", "user");
+    addMessage(data.summary, "ai");
 }
 
+/* Quiz */
 async function getQuiz() {
     showLoader();
-    updateProgress("📖 Reading transcript...");
-
-    await new Promise(r => setTimeout(r, 400));
-
-    updateProgress("📝 Creating questions...");
-
     let res = await fetch("/quiz/");
     let data = await res.json();
-
     hideLoader();
-    document.getElementById("output").innerText = data.quiz;
+
+    addMessage("📝 Quiz", "user");
+    addMessage(data.quiz, "ai");
 }
+
+/* Chat helpers */
+function addMessage(text, sender) {
+    let chat = document.getElementById("chatBox");
+
+    let msg = document.createElement("div");
+    msg.classList.add("message", sender);
+    msg.innerText = text;
+
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* Typing */
+function showTyping() {
+    let chat = document.getElementById("chatBox");
+
+    let msg = document.createElement("div");
+    msg.classList.add("message", "ai");
+    msg.id = "typing";
+    msg.innerText = "Typing...";
+
+    chat.appendChild(msg);
+}
+
+function removeTyping() {
+    let t = document.getElementById("typing");
+    if (t) t.remove();
+}
+
+/* Enter key */
+document.getElementById("query").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") ask();
+});
