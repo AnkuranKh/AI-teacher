@@ -1,11 +1,16 @@
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer,CrossEncoder 
 import requests
-import os   
+import os
+import torch
+
+from sentence_transformers import SentenceTransformer, CrossEncoder
 from openai import OpenAI
 from dotenv import load_dotenv
 
+# ✅ Reduce memory/thread pressure
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+torch.set_num_threads(1)
 
 load_dotenv()
 
@@ -17,15 +22,45 @@ client = OpenAI(
 # EXIT WORDS
 EXIT_WORDS = ["exit", "bye", "goodbye", "quit", "see you", "stop"]
 
-# Load embedding model
-model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+# ✅ Lazy-loaded embedding model
+embedding_model = None
 
-# Re-ranking model
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+# ✅ Lazy-loaded reranker model
+reranker_model = None
 
-#  Expand query for better retrieval
+
+# ✅ Embedding model loader
+def get_embedding_model():
+    global embedding_model
+
+    if embedding_model is None:
+        print("🚀 Loading embedding model...")
+
+        embedding_model = SentenceTransformer(
+            'paraphrase-multilingual-MiniLM-L12-v2'
+        )
+
+    return embedding_model
+
+
+# ✅ Reranker loader
+def get_reranker():
+    global reranker_model
+
+    if reranker_model is None:
+        print("🚀 Loading reranker model...")
+
+        reranker_model = CrossEncoder(
+            "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        )
+
+    return reranker_model
+
+
+# Expand query for better retrieval
 def expand_query(query):
     return query + " explanation definition concept details"
+
 
 # Paths
 INDEX_PATH = "data/index/index.faiss"
@@ -34,7 +69,8 @@ CHUNKS_PATH = "data/index/chunks.pkl"
 # ❌ REMOVED THIS LINE (was causing crash)
 # index = faiss.read_index(INDEX_PATH)
 
-#  Re-ranking function
+
+# Re-ranking function
 def rerank_chunks(query, chunks, top_n=5):
     if not chunks:
         return []
@@ -42,6 +78,9 @@ def rerank_chunks(query, chunks, top_n=5):
     try:
         # Pair query with each chunk
         pairs = [(query, chunk) for chunk in chunks]
+
+        # ✅ Lazy load reranker
+        reranker = get_reranker()
 
         # Get relevance scores
         scores = reranker.predict(pairs)
@@ -60,7 +99,6 @@ def rerank_chunks(query, chunks, top_n=5):
         return chunks[:top_n]  # fallback
 
 
-
 def extract_last_topic(chat_history):
     if not chat_history:
         return ""
@@ -73,24 +111,28 @@ def ask_question(query, chunks, k=20, chat_history=None):
 
     index = faiss.read_index(INDEX_PATH)
 
-
     # 🔥 stronger expansion
     expanded_query = query + " explanation working speed reason advantage difference bandwidth latency"
 
-    query_vector = model.encode([expanded_query], normalize_embeddings=True)
+    # ✅ Lazy load embedding model
+    model = get_embedding_model()
+
+    query_vector = model.encode(
+        [expanded_query],
+        normalize_embeddings=True
+    )
 
     distances, indices = index.search(np.array(query_vector), k)
 
     results = [chunks[i] for i in indices[0] if i < len(chunks)]
 
     if not results:
-       results = [chunks[0], chunks[len(chunks)//2], chunks[-1]]
+        results = [chunks[0], chunks[len(chunks)//2], chunks[-1]]
 
     # 🔥 NEW: Apply re-ranking
     reranked_results = rerank_chunks(query, results, top_n=5)
 
     return reranked_results
-
 
 
 # detect if question is about video
@@ -109,7 +151,7 @@ def is_video_question(query):
     return False
 
 
-#follow-up detector
+# follow-up detector
 def is_follow_up_query(query):
     query = query.lower().strip()
 
@@ -130,10 +172,9 @@ def is_follow_up_query(query):
     return False
 
 
-
 # 🔁 dual-mode answer
 def generate_answer(context, question, use_context=True):
-    
+
     if use_context:
         prompt = f"""
 You are a strict AI teacher helping a student understand a video.

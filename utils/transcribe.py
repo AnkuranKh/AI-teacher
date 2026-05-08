@@ -1,20 +1,39 @@
 from faster_whisper import WhisperModel
 import os
+import torch
 
-print("🚀 Loading Whisper model once...")
+# ✅ reduce thread pressure
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+torch.set_num_threads(1)
 
-model = WhisperModel(
-    "small",                      # 🔥 faster + better than base
-    device="cpu",
-    compute_type="int8",
-    cpu_threads=os.cpu_count()   # 🔥 use all CPU cores
-)
+# ✅ lazy-loaded global model
+model = None
+
+
+def get_whisper_model():
+    global model
+
+    if model is None:
+        print("🚀 Loading Whisper model once...")
+
+        model = WhisperModel(
+            "small",                    # 🔥 faster + better than base
+            device="cpu",
+            compute_type="int8",
+            cpu_threads=os.cpu_count()  # 🔥 use all CPU cores
+        )
+
+    return model
+
 
 def transcribe_audio(audio_path):
     print("🎧 Transcribing...")
 
+    # ✅ lazy load model only when needed
+    whisper_model = get_whisper_model()
+
     # ✅ Faster decoding settings
-    segments, info = model.transcribe(
+    segments, info = whisper_model.transcribe(
         audio_path,
         beam_size=5,        # 🔥 better accuracy
         best_of=3,          # 🔥 better candidate selection

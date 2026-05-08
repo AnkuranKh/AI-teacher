@@ -2,17 +2,37 @@ import os
 import pickle
 import faiss
 import numpy as np
+import torch
+
 from sentence_transformers import SentenceTransformer
 from fastapi import FastAPI
 
-# Load embedding model
-model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+# ✅ Reduce memory/thread pressure
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+torch.set_num_threads(1)
+
+# ✅ Lazy-loaded embedding model
+embedding_model = None
 
 # Paths
 CHUNKS_PATH = "data/index/chunks.pkl"
 INDEX_PATH = "data/index/index.faiss"
 
 app = FastAPI()
+
+
+# ✅ Lazy loading function
+def get_embedding_model():
+    global embedding_model
+
+    if embedding_model is None:
+        print("🚀 Loading embedding model...")
+
+        embedding_model = SentenceTransformer(
+            'paraphrase-multilingual-MiniLM-L12-v2'
+        )
+
+    return embedding_model
 
 
 def create_embeddings():
@@ -26,8 +46,14 @@ def create_embeddings():
 
     print(f"📄 Loaded {len(chunks)} chunks")
 
+    # ✅ Lazy load model only when needed
+    model = get_embedding_model()
+
     # Convert text → embeddings
-    embeddings = model.encode(chunks, normalize_embeddings=True)
+    embeddings = model.encode(
+        chunks,
+        normalize_embeddings=True
+    )
 
     print("🧠 Embeddings created")
 
@@ -49,15 +75,26 @@ def create_embeddings_from_chunks(chunks):
     if os.path.exists(INDEX_PATH):
         os.remove(INDEX_PATH)
 
-    embeddings = model.encode(chunks, normalize_embeddings=True)
+    # ✅ Lazy load model only when needed
+    model = get_embedding_model()
+
+    embeddings = model.encode(
+        chunks,
+        normalize_embeddings=True
+    )
 
     dimension = embeddings.shape[1]
+
     index = faiss.IndexFlatL2(dimension)
+
     index.add(np.array(embeddings))
 
     faiss.write_index(index, INDEX_PATH)
 
-    return {"message": "Embeddings created", "num_chunks": len(chunks)}
+    return {
+        "message": "Embeddings created",
+        "num_chunks": len(chunks)
+    }
 
 
 # ✅ FASTAPI ENDPOINT
@@ -75,4 +112,5 @@ if __name__ == "__main__":
     os.makedirs("data/index", exist_ok=True)
 
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
