@@ -2,7 +2,17 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder 
 import requests
-import os   # ✅ ADDED
+import os   
+from openai import OpenAI
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
 # EXIT WORDS
 EXIT_WORDS = ["exit", "bye", "goodbye", "quit", "see you", "stop"]
@@ -123,7 +133,7 @@ def is_follow_up_query(query):
 
 # 🔁 dual-mode answer
 def generate_answer(context, question, use_context=True):
-
+    
     if use_context:
         prompt = f"""
 You are a strict AI teacher helping a student understand a video.
@@ -134,14 +144,13 @@ Follow these rules strictly:
 
 2. If the answer IS present in the context:
    - Answer ONLY using the context
-   - Do NOT use any outside knowledge
+   - Do NOT use outside knowledge
 
 3. If the answer is NOT present in the context:
    - Say EXACTLY: "Not found in the video."
-   - Then give a general explanation using your own knowledge
+   - Then answer using your own knowledge
 
-4. Do NOT mix both modes.
-5. Be clear and helpful.
+4. Be conversational and helpful.
 
 Context:
 {context}
@@ -153,9 +162,7 @@ Answer:
 """
     else:
         prompt = f"""
-You are a friendly AI assistant.
-
-Answer the question naturally and conversationally.
+You are a helpful AI assistant.
 
 Question:
 {question}
@@ -163,21 +170,19 @@ Question:
 Answer:
 """
 
-    response = requests.post(
-    "http://localhost:11434/api/generate",
-    json={
-        "model": "gemma:2b",
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": 0.7,   # 🔥 controls randomness
-            "top_p": 0.9
-        }
-    },
-    timeout=60
-)
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.7,
+        max_tokens=500
+    )
 
-    return response.json().get("response", "No response from model.")
+    return response.choices[0].message.content
 
 
 if __name__ == "__main__":
