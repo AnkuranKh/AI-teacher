@@ -1,82 +1,63 @@
-from faster_whisper import WhisperModel
+from openai import OpenAI
+from dotenv import load_dotenv
 import os
-import torch
 
-# ✅ reduce thread pressure
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-torch.set_num_threads(1)
+# ✅ load env variables
+load_dotenv()
 
-# ✅ lazy-loaded global model
-model = None
-
-
-def get_whisper_model():
-    global model
-
-    if model is None:
-        print("🚀 Loading Whisper model once...")
-
-        model = WhisperModel(
-            "tiny",                    # 🔥 lightweight for Render
-            device="cpu",
-            compute_type="int8",
-            cpu_threads=1
-        )
-
-    return model
+# ✅ Groq client
+client = OpenAI(
+    api_key=os.getenv("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
 
 
 def transcribe_audio(audio_path):
-    print("🎧 Transcribing...")
 
-    # ✅ lazy load model only when needed
-    whisper_model = get_whisper_model()
+    print("🎧 Transcribing with Groq Whisper API...")
 
-    print("🚀 Starting Whisper transcription...")
+    try:
 
-    # ✅ Faster decoding settings
-    segments, info = whisper_model.transcribe(
-        audio_path,
-        beam_size=5,        # 🔥 better accuracy
-        best_of=3,          # 🔥 better candidate selection
-        temperature=0.2     # 🔥 avoids rigid decoding
-    )
+        with open(audio_path, "rb") as audio_file:
 
-    print("✅ Whisper transcription initialized")
+            transcript = client.audio.transcriptions.create(
+                file=audio_file,
+                model="whisper-large-v3-turbo"
+            )
 
-    detected_language = info.language
-    print(f"🌐 Detected language: {detected_language}")
+        full_text = transcript.text
 
-    # ✅ Allow only these languages and Normalize Assamese detection
-    if detected_language == "bn":
-        print("⚠️ Detected Bengali — treating as Assamese")
+        print("✅ Transcript generation completed")
 
-    ALLOWED_LANGUAGES = ["en", "hi", "as", "bn"]
+        # ✅ preserve old return structure
+        detected_language = "en"
 
-    if detected_language not in ALLOWED_LANGUAGES:
-        return None, detected_language
+        return full_text, detected_language
 
-    full_text = ""
+    except Exception as e:
 
-    # ✅ Removed heavy per-segment console printing
-    for segment in segments:
-        full_text += segment.text + " "
+        print("❌ Transcription failed:", e)
 
-    print("✅ Transcript generation completed")
-
-    return full_text, detected_language
+        return None, "unknown"
 
 
 if __name__ == "__main__":
-    input_path = "data/videos/output.wav"
-    output_path = "data/transcripts/transcript.txt"
 
-    # ensure folder exists
-    os.makedirs("data/transcripts", exist_ok=True)
+    input_path = "data/videos/output.mp3"
 
     transcript, _ = transcribe_audio(input_path)
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(transcript)
+    if transcript:
 
-    print(f"\n✅ Transcription saved to {output_path}")
+        os.makedirs("data/transcripts", exist_ok=True)
+
+        output_path = "data/transcripts/transcript.txt"
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(transcript)
+
+        print(f"\n✅ Transcription saved to {output_path}")
+
+    else:
+
+        print("❌ Failed to generate transcript")
