@@ -29,13 +29,20 @@ async function trackProgress() {
 
 /* Upload */
 async function upload() {
+
     document.getElementById("chatBox").innerHTML = "";
 
     let file = document.getElementById("videoFile").files[0];
-    if (!file) return alert("Select a file");
+
+    if (!file) {
+        return alert("Select a file");
+    }
+
+    console.log("📁 Upload started");
 
     // 🎥 SHOW VIDEO
     let videoPlayer = document.getElementById("videoPlayer");
+
     videoPlayer.src = URL.createObjectURL(file);
     videoPlayer.load();
 
@@ -43,18 +50,44 @@ async function upload() {
     formData.append("file", file);
 
     showLoader();
+
     document.getElementById("query").disabled = true;
 
     document.getElementById("progressContainer").style.display = "block";
+
     trackProgress();
 
-    let res = await fetch("/upload/", { method: "POST", body: formData });
-    let data = await res.json();
+    try {
 
-    hideLoader();
-    document.getElementById("query").disabled = false;
+        console.log("🚀 Sending upload request...");
 
-    addMessage(data.message, "ai");
+        let res = await fetch("/upload/", {
+            method: "POST",
+            body: formData
+        });
+
+        console.log("✅ Upload response received");
+
+        let data = await res.json();
+
+        console.log("📦 Response data:", data);
+
+        hideLoader();
+
+        document.getElementById("query").disabled = false;
+
+        addMessage(data.message, "ai");
+
+    } catch (err) {
+
+        console.error("❌ Upload failed:", err);
+
+        hideLoader();
+
+        document.getElementById("query").disabled = false;
+
+        addMessage("❌ Upload failed. Check Render logs.", "ai");
+    }
 }
 
 /* YouTube */
