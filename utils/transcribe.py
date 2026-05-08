@@ -17,10 +17,10 @@ def get_whisper_model():
         print("🚀 Loading Whisper model once...")
 
         model = WhisperModel(
-            "tiny",                    # 🔥 faster + better than base
+            "tiny",                    # 🔥 lightweight for Render
             device="cpu",
             compute_type="int8",
-            cpu_threads=1  # 🔥 use all CPU cores
+            cpu_threads=1
         )
 
     return model
@@ -32,6 +32,8 @@ def transcribe_audio(audio_path):
     # ✅ lazy load model only when needed
     whisper_model = get_whisper_model()
 
+    print("🚀 Starting Whisper transcription...")
+
     # ✅ Faster decoding settings
     segments, info = whisper_model.transcribe(
         audio_path,
@@ -39,6 +41,8 @@ def transcribe_audio(audio_path):
         best_of=3,          # 🔥 better candidate selection
         temperature=0.2     # 🔥 avoids rigid decoding
     )
+
+    print("✅ Whisper transcription initialized")
 
     detected_language = info.language
     print(f"🌐 Detected language: {detected_language}")
@@ -54,9 +58,11 @@ def transcribe_audio(audio_path):
 
     full_text = ""
 
+    # ✅ Removed heavy per-segment console printing
     for segment in segments:
-        print(f"[{segment.start:.2f}s - {segment.end:.2f}s] {segment.text}")
         full_text += segment.text + " "
+
+    print("✅ Transcript generation completed")
 
     return full_text, detected_language
 
