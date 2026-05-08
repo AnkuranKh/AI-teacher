@@ -17,10 +17,10 @@ def get_whisper_model():
         print("🚀 Loading Whisper model once...")
 
         model = WhisperModel(
-            "small",                    # 🔥 faster + better than base
+            "tiny",                    # 🔥 faster + better than base
             device="cpu",
             compute_type="int8",
-            cpu_threads=os.cpu_count()  # 🔥 use all CPU cores
+            cpu_threads=1  # 🔥 use all CPU cores
         )
 
     return model
