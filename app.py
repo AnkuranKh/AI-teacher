@@ -176,9 +176,10 @@ async def upload_video(file: UploadFile = File(...)):
         "ffmpeg",
         "-i", temp_video_path,
         "-vn",
-        "-acodec", "pcm_s16le",
+        "-acodec", "mp3",
         "-ar", "16000",
         "-ac", "1",
+        "-b:a", "64k",
         temp_audio_path
     ],
     stdout=subprocess.DEVNULL,
