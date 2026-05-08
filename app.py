@@ -169,21 +169,34 @@ async def upload_video(file: UploadFile = File(...)):
     # convert to audio
     temp_audio_path = temp_video_path.replace(".mp4", ".wav")
 
-    subprocess.run([
-    "ffmpeg", "-i", temp_video_path,
-    "-vn",                    # 🔥 ignore video completely
-    "-acodec", "pcm_s16le",
-    "-ar", "16000",
-    "-ac", "1",
-    temp_audio_path
-])
+    print("🎧 Starting audio extraction...")
+
+    subprocess.run(
+    [
+        "ffmpeg",
+        "-i", temp_video_path,
+        "-vn",
+        "-acodec", "pcm_s16le",
+        "-ar", "16000",
+        "-ac", "1",
+        temp_audio_path
+    ],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL
+)
+
+    print("✅ Audio extraction completed")
 
     # 🔄 Update progress
     UPLOAD_PROGRESS["progress"] = 50
     UPLOAD_PROGRESS["status"] = "Transcribing audio..."
 
+    print("🚀 Calling transcribe_audio()")
+
     # transcribe
     transcript, language = transcribe_audio(temp_audio_path)
+
+    print("✅ Transcription returned successfully")
 
     if transcript is None:
         os.remove(temp_video_path)
