@@ -1,116 +1,81 @@
 import os
-import pickle
 import faiss
 import numpy as np
-import torch
 
-from sentence_transformers import SentenceTransformer
-from fastapi import FastAPI
+from openai import OpenAI
+from dotenv import load_dotenv
 
-# ✅ Reduce memory/thread pressure
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-torch.set_num_threads(1)
+load_dotenv(override=True)
 
-# ✅ Lazy-loaded embedding model
-embedding_model = None
+# ✅ OpenAI client
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+print("OPENAI ENV:", os.getenv("OPENAI_API_KEY"))
 
 # Paths
-CHUNKS_PATH = "data/index/chunks.pkl"
 INDEX_PATH = "data/index/index.faiss"
 
-app = FastAPI()
 
+# ✅ OpenAI embedding helper
+def get_embedding(text):
 
-# ✅ Lazy loading function
-def get_embedding_model():
-    global embedding_model
-
-    if embedding_model is None:
-        print("🚀 Loading embedding model...")
-
-        embedding_model = SentenceTransformer(
-            'paraphrase-multilingual-MiniLM-L12-v2'
+    try:
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=text
         )
 
-    return embedding_model
+        return response.data[0].embedding
+
+    except Exception as e:
+        print("❌ OpenAI embedding error:", e)
+        raise e
 
 
-def create_embeddings():
-    # 🧹 DELETE OLD INDEX FIRST
-    if os.path.exists(INDEX_PATH):
-        os.remove(INDEX_PATH)
-
-    # Load chunks
-    with open(CHUNKS_PATH, "rb") as f:
-        chunks = pickle.load(f)
-
-    print(f"📄 Loaded {len(chunks)} chunks")
-
-    # ✅ Lazy load model only when needed
-    model = get_embedding_model()
-
-    # Convert text → embeddings
-    embeddings = model.encode(
-        chunks,
-        normalize_embeddings=True
-    )
-
-    print("🧠 Embeddings created")
-
-    # Create FAISS index
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-
-    index.add(np.array(embeddings))
-
-    # Save index
-    faiss.write_index(index, INDEX_PATH)
-
-    print(f"💾 Index saved to {INDEX_PATH}")
-
-
-# ✅ NEW FUNCTION (in-memory)
+# ✅ Create embeddings from chunks (BATCH VERSION)
 def create_embeddings_from_chunks(chunks):
-    # 🧹 DELETE OLD INDEX FIRST
+
+    # delete old index
     if os.path.exists(INDEX_PATH):
         os.remove(INDEX_PATH)
 
-    # ✅ Lazy load model only when needed
-    model = get_embedding_model()
+    print("🚀 Creating embeddings...")
 
-    embeddings = model.encode(
-        chunks,
-        normalize_embeddings=True
-    )
+    try:
 
-    dimension = embeddings.shape[1]
+        # 🔥 Batch embeddings (much faster + cheaper)
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=chunks
+        )
 
-    index = faiss.IndexFlatL2(dimension)
+        embeddings = [
+            item.embedding
+            for item in response.data
+        ]
 
-    index.add(np.array(embeddings))
+        embeddings = np.array(
+            embeddings
+        ).astype("float32")
 
-    faiss.write_index(index, INDEX_PATH)
+        dimension = embeddings.shape[1]
 
-    return {
-        "message": "Embeddings created",
-        "num_chunks": len(chunks)
-    }
+        index = faiss.IndexFlatL2(dimension)
 
+        index.add(embeddings)
 
-# ✅ FASTAPI ENDPOINT
-@app.post("/create-embeddings")
-def create_embeddings_api(data: dict):
-    chunks = data.get("chunks", [])
+        faiss.write_index(index, INDEX_PATH)
 
-    if not chunks:
-        return {"error": "No chunks provided"}
+        print("✅ Embeddings created")
 
-    return create_embeddings_from_chunks(chunks)
+        return {
+            "message": "Embeddings created",
+            "num_chunks": len(chunks)
+        }
 
+    except Exception as e:
 
-if __name__ == "__main__":
-    os.makedirs("data/index", exist_ok=True)
+        print("❌ Embedding creation failed:", e)
 
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+        raise e
