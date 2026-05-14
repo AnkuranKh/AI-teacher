@@ -35,6 +35,7 @@ os.makedirs("data/index", exist_ok=True)
 GLOBAL_CHUNKS = []
 LAST_FILE_HASH = None  # ✅ NEW
 
+HASH_PATH = "data/index/last_video_hash.txt"
 #FOLLOW UP CONVERSATIONS
 CHAT_HISTORY = []
 
@@ -109,40 +110,47 @@ def resolve_pronouns(question, topic):
 def get_progress():
     return UPLOAD_PROGRESS
 
-# 🌐 UI Route (UPDATED ONLY THIS PART)
+# 🌐 UI Route 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    global GLOBAL_CHUNKS, CHAT_HISTORY   # ✅ ADD
-    
-    # 🔥 RESET MEMORY and GLOBAL CHUNKS
-    GLOBAL_CHUNKS = []
-    CHAT_HISTORY = []   
 
-    if os.path.exists(TRANSCRIPT_PATH):
-        os.remove(TRANSCRIPT_PATH)
+    global GLOBAL_CHUNKS, CHAT_HISTORY
 
-    if os.path.exists(INDEX_PATH):
-        os.remove(INDEX_PATH)
+    CHAT_HISTORY = []
 
-    return templates.TemplateResponse("index.html", {"request": request})
+    # Restore previous chunks after refresh/restart
+    if not GLOBAL_CHUNKS and os.path.exists(TRANSCRIPT_PATH):
+
+        print("♻️ Restoring previous video")
+
+        with open(
+            TRANSCRIPT_PATH,
+            "r",
+            encoding="utf-8"
+        ) as f:
+            transcript = f.read()
+
+        GLOBAL_CHUNKS = create_chunks(transcript)
+
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request}
+    )
 
 
 # 🎥 Upload + Full Pipeline
 @app.post("/upload/")
 async def upload_video(file: UploadFile = File(...)):
+
     global GLOBAL_CHUNKS, LAST_FILE_HASH, UPLOAD_PROGRESS, CHAT_HISTORY
-    
     global LAST_CONTEXT
+
     LAST_CONTEXT = ""
-    
     CHAT_HISTORY = []
-    
+
     # 🔄 Start progress
     UPLOAD_PROGRESS["progress"] = 5
     UPLOAD_PROGRESS["status"] = "Uploading video..."
-
-    if os.path.exists(INDEX_PATH):
-        os.remove(INDEX_PATH)
 
     # temp video
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
@@ -153,14 +161,49 @@ async def upload_video(file: UploadFile = File(...)):
     UPLOAD_PROGRESS["progress"] = 20
     UPLOAD_PROGRESS["status"] = "Checking video..."
 
-    # duplicate check
+    # hash check
     current_hash = get_file_hash(temp_video_path)
 
-    if LAST_FILE_HASH == current_hash:
-        os.remove(temp_video_path)
-        return {"message": "⚠️ This video is already processed. Please upload a new one."}
+    # check if same video already processed
+    if (
+        os.path.exists(HASH_PATH)
+        and os.path.exists(INDEX_PATH)
+        and os.path.exists(TRANSCRIPT_PATH)
+    ):
 
-    LAST_FILE_HASH = current_hash
+        with open(HASH_PATH, "r") as f:
+            saved_hash = f.read().strip()
+
+        # SAME VIDEO
+        if current_hash == saved_hash:
+
+            print("⚡ Same video detected")
+
+            # restore chunks if server restarted
+            if not GLOBAL_CHUNKS:
+
+                with open(
+                    TRANSCRIPT_PATH,
+                    "r",
+                    encoding="utf-8"
+                ) as f:
+                    transcript = f.read()
+
+                GLOBAL_CHUNKS = create_chunks(transcript)
+
+            os.remove(temp_video_path)
+
+            UPLOAD_PROGRESS["progress"] = 100
+            UPLOAD_PROGRESS["status"] = "Done"
+
+            return {
+                "message":
+                "✅ This video is already processed.\n"
+                "You can start asking questions,\n"
+                "generate summaries or quiz."
+            }
+
+    print("🆕 New video detected")
 
     # 🔄 Update progress
     UPLOAD_PROGRESS["progress"] = 30
@@ -172,19 +215,19 @@ async def upload_video(file: UploadFile = File(...)):
     print("🎧 Starting audio extraction...")
 
     subprocess.run(
-    [
-        "ffmpeg",
-        "-i", temp_video_path,
-        "-vn",
-        "-acodec", "mp3",
-        "-ar", "16000",
-        "-ac", "1",
-        "-b:a", "64k",
-        temp_audio_path
-    ],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-)
+        [
+            "ffmpeg",
+            "-i", temp_video_path,
+            "-vn",
+            "-acodec", "mp3",
+            "-ar", "16000",
+            "-ac", "1",
+            "-b:a", "64k",
+            temp_audio_path
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
 
     print("✅ Audio extraction completed")
 
@@ -204,7 +247,8 @@ async def upload_video(file: UploadFile = File(...)):
         os.remove(temp_audio_path)
 
         return {
-            "message": "❌ This app supports only English, Hindi, and Assamese videos."
+            "message":
+            "❌ This app supports only English, Hindi, and Assamese videos."
         }
 
     # 🔄 Update progress
@@ -228,6 +272,10 @@ async def upload_video(file: UploadFile = File(...)):
     # embeddings
     create_embeddings_from_chunks(GLOBAL_CHUNKS)
 
+    # save current hash
+    with open(HASH_PATH, "w") as f:
+        f.write(current_hash)
+
     # 🔄 Done
     UPLOAD_PROGRESS["progress"] = 100
     UPLOAD_PROGRESS["status"] = "Done"
@@ -242,7 +290,8 @@ async def upload_video(file: UploadFile = File(...)):
 @app.post("/upload-youtube/")
 async def upload_youtube(url: str):
 
-    global GLOBAL_CHUNKS, LAST_FILE_HASH, UPLOAD_PROGRESS, CHAT_HISTORY, LAST_CONTEXT
+    global GLOBAL_CHUNKS, LAST_FILE_HASH
+    global UPLOAD_PROGRESS, CHAT_HISTORY, LAST_CONTEXT
 
     LAST_CONTEXT = ""
     CHAT_HISTORY = []
@@ -251,23 +300,63 @@ async def upload_youtube(url: str):
     UPLOAD_PROGRESS["status"] = "Downloading YouTube audio..."
 
     try:
-        audio_path = download_youtube_audio(url)   # 🔥 returns .wav
-    except Exception as e:
-        return {"message": f"❌ Failed to download video: {str(e)}"}
+        audio_path = download_youtube_audio(url)
 
-    # hash check
+    except Exception as e:
+        return {
+            "message":
+            f"❌ Failed to download video: {str(e)}"
+        }
+
+    # 🔄 progress
     UPLOAD_PROGRESS["progress"] = 20
     UPLOAD_PROGRESS["status"] = "Checking content..."
 
+    # hash check
     current_hash = get_file_hash(audio_path)
 
-    if LAST_FILE_HASH == current_hash:
-        os.remove(audio_path)
-        return {"message": "⚠️ This video is already processed."}
+    # check if same video already processed
+    if (
+        os.path.exists(HASH_PATH)
+        and os.path.exists(INDEX_PATH)
+        and os.path.exists(TRANSCRIPT_PATH)
+    ):
 
-    LAST_FILE_HASH = current_hash
+        with open(HASH_PATH, "r") as f:
+            saved_hash = f.read().strip()
 
-    # 🔥 NO FFMPEG HERE
+        # SAME VIDEO
+        if current_hash == saved_hash:
+
+            print("⚡ Same YouTube video detected")
+
+            # restore chunks if server restarted
+            if not GLOBAL_CHUNKS:
+
+                with open(
+                    TRANSCRIPT_PATH,
+                    "r",
+                    encoding="utf-8"
+                ) as f:
+                    transcript = f.read()
+
+                GLOBAL_CHUNKS = create_chunks(transcript)
+
+            os.remove(audio_path)
+
+            UPLOAD_PROGRESS["progress"] = 100
+            UPLOAD_PROGRESS["status"] = "Done"
+
+            return {
+                "message":
+                "✅ This video is already processed.\n"
+                "You can start asking questions,\n"
+                "generate summaries or quiz."
+            }
+
+    print("🆕 New YouTube video detected")
+
+    # 🔄 progress
     UPLOAD_PROGRESS["progress"] = 30
     UPLOAD_PROGRESS["status"] = "Preparing audio..."
 
@@ -279,7 +368,10 @@ async def upload_youtube(url: str):
 
     if transcript is None:
         os.remove(audio_path)
-        return {"message": "❌ Unsupported language."}
+
+        return {
+            "message": "❌ Unsupported language."
+        }
 
     # save transcript
     UPLOAD_PROGRESS["progress"] = 70
@@ -300,13 +392,20 @@ async def upload_youtube(url: str):
 
     create_embeddings_from_chunks(GLOBAL_CHUNKS)
 
+    # save current hash
+    with open(HASH_PATH, "w") as f:
+        f.write(current_hash)
+
     UPLOAD_PROGRESS["progress"] = 100
     UPLOAD_PROGRESS["status"] = "Done"
 
     # cleanup
     os.remove(audio_path)
 
-    return {"message": "✅ YouTube video processed successfully"}
+    return {
+        "message":
+        "✅ YouTube video processed successfully"
+    }
 
 #SPLIT QUESTIONS
 def split_questions(query):
