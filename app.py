@@ -431,9 +431,52 @@ async def upload_youtube(url: str):
                 "❌ Invalid YouTube URL."
             }
 
+        # -------------------------
+        # CREATE SESSION ONLY ONCE
+        # -------------------------
+
+        session = (
+            requests.Session()
+        )
+
+        # Load cookies.txt
+        cookie_jar = (
+            MozillaCookieJar()
+        )
+
+        cookie_jar.load(
+            "cookies.txt",
+            ignore_discard=True,
+            ignore_expires=True
+        )
+
+        print(
+            "🍪 Cookies loaded:",
+            len(cookie_jar)
+        )
+
+        # Inject cookies manually
+        for cookie in cookie_jar:
+
+            session.cookies.set(
+                cookie.name,
+                cookie.value,
+                domain=cookie.domain
+            )
+
+        # Create ONE API client
+        ytt_api = (
+            YouTubeTranscriptApi(
+                http_client=session
+            )
+        )
+
         transcript_data = None
 
-        # Retry logic
+        # -------------------------
+        # RETRY LOGIC
+        # -------------------------
+
         for attempt in range(3):
 
             try:
@@ -445,37 +488,10 @@ async def upload_youtube(url: str):
                 print(
                     f"⏳ Waiting "
                     f"{wait_time:.2f}s "
-                    " before transcript fetch..."
+                    "before transcript fetch..."
                 )
 
                 time.sleep(wait_time)
-
-                # Create session
-                session = (
-                    requests.Session()
-                )
-
-                # Load cookies.txt
-                cookie_jar = (
-                    MozillaCookieJar()
-                )
-
-                cookie_jar.load(
-                    "cookies.txt",
-                    ignore_discard=True,
-                    ignore_expires=True
-                )
-
-                session.cookies.update(
-                    cookie_jar
-                )
-
-                # Create API client
-                ytt_api = (
-                    YouTubeTranscriptApi(
-                        http_client=session
-                    )
-                )
 
                 transcript_data = (
                     ytt_api.fetch(
