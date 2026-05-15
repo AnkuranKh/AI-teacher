@@ -638,29 +638,39 @@ async def quiz(
         return {"quiz": "⚠️ Transcript is empty. Please upload video again."}
 
     prompt = f"""
-You are an expert teacher helping students prepare for exams.
+You are an expert teacher creating exam practice quizzes.
 
-Generate EXACTLY 5 MCQ questions.
+Generate EXACTLY 5 MCQ questions ONLY from the provided video content.
 
-Difficulty Level:
-{difficulty}
+DIFFICULTY LEVEL:
+{difficulty.upper()}
 
-RULES:
+STRICT DIFFICULTY RULES:
 
-For EASY:
-- Basic recall questions
-- Simple language
-- Direct facts
+IF EASY:
+- Very basic recall questions
+- Ask definitions, names, facts
+- Straightforward answers
+- Suitable for beginners
 
-For MEDIUM:
-- Moderate understanding
-- Slightly conceptual
-- Mix factual + understanding
+IF MEDIUM:
+- Moderate difficulty
+- Ask understanding + concept application
+- Include reasoning-based questions
+- Suitable for exam preparation
 
-For HARD:
-- Challenging
-- Conceptual + analytical
-- Exam-level tricky questions
+IF HARD:
+- Difficult and tricky
+- Ask analytical and conceptual questions
+- Include confusing options
+- UPSC/APSC-style thinking
+- Avoid direct factual recall
+
+VERY IMPORTANT:
+- Each difficulty MUST generate DIFFERENT questions.
+- Do NOT repeat questions across difficulty levels.
+- HARD should feel noticeably harder than EASY.
+- Questions must be based ONLY on the video.
 
 STRICT FORMAT:
 
@@ -674,11 +684,11 @@ D) Option
 ✅ Correct Answer: A
 
 💡 Explanation:
-Short explanation.
+Brief explanation.
 
-Repeat for exactly 5 questions.
+Generate EXACTLY 5 questions.
 
-Text:
+Video Content:
 {text}
 """
 
