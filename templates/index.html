@@ -32,10 +32,31 @@
         </div>
 
         <!-- 🎥 VIDEO PLAYER -->
-        <div class="video-container">
-            <video id="videoPlayer" controls></video>
-        </div>
+<div class="video-container">
 
+    <!-- Normal uploaded video -->
+    <video id="videoPlayer" controls></video>
+
+    <!-- YouTube player -->
+    <div
+        id="youtubeContainer"
+        style="display:none;">
+
+        <iframe
+    id="youtubePlayer"
+    width="100%"
+    height="300"
+    style="border:none;"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    referrerpolicy="strict-origin-when-cross-origin"
+    allowfullscreen>
+</iframe>
+
+    </div>
+
+</div>
+        
         <!-- 💬 CHAT -->
         <div id="chatBox" class="chat-box"></div>
 
