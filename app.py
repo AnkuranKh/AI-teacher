@@ -50,32 +50,94 @@ UPLOAD_PROGRESS = {
 
 #DOWNLOAD THROUGH LINKS
 def download_youtube_audio(url):
+    
     temp_dir = tempfile.gettempdir()
-    output_path = os.path.join(temp_dir, "%(id)s.%(ext)s")
+
+    output_path = os.path.join(
+        temp_dir,
+        "%(id)s.%(ext)s"
+    )
 
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_path,
-        'quiet': True,
-        'noplaylist': True,
-        'geo_bypass': True,
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android']
+        "format": "bestaudio[ext=m4a]/bestaudio/best",
+
+        "outtmpl": output_path,
+
+        "quiet": True,
+
+        "noplaylist": True,
+
+        "geo_bypass": True,
+
+        "extract_flat": False,
+
+        "nocheckcertificate": True,
+
+        "ignoreerrors": False,
+
+        "no_warnings": True,
+
+        "http_headers": {
+            "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0 Safari/537.36"
+        },
+
+        "extractor_args": {
+            "youtube": {
+                "player_client": [
+                    "android",
+                    "web"
+                ],
+
+                "skip": [
+                    "dash",
+                    "hls"
+                ]
             }
         },
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'wav',
-            'preferredquality': '192',
-        }],
+
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "wav",
+            "preferredquality": "192"
+        }]
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
+    try:
 
-        return os.path.splitext(filename)[0] + ".wav"
+        with yt_dlp.YoutubeDL(
+            ydl_opts
+        ) as ydl:
+
+            info = ydl.extract_info(
+                url,
+                download=True
+            )
+
+            filename = (
+                ydl.prepare_filename(info)
+            )
+
+            return (
+                os.path.splitext(
+                    filename
+                )[0]
+                + ".wav"
+            )
+
+    except Exception as e:
+
+        print(
+            "❌ YouTube download failed:",
+            e
+        )
+
+        raise Exception(
+            "YouTube blocked the download. "
+            "Try another video or retry."
+        )
 
 # ✅ NEW helper function
 def get_file_hash(file_path):
