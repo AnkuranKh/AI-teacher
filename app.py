@@ -587,9 +587,19 @@ async def summary():
         return {"summary": "⚠️ Transcript is empty. Please upload video again."}
 
     prompt = f"""
-Summarize this video in a short, engaging way.
+You are an expert teacher helping students revise quickly.
 
-Make it slightly unique and varied each time.
+Create an INTERACTIVE STUDY SUMMARY.
+
+Structure:
+
+1. 📌 Key Topics Covered
+2. 🧠 Easy Explanation
+3. 🎯 Exam-Relevant Points
+4. ⚡ Quick Revision Notes
+5. ❓ 3 Possible Viva Questions
+
+Keep it student-friendly and engaging.
 
 Text:
 {text}
@@ -602,7 +612,9 @@ Text:
 
 # 📝 Quiz generator
 @app.get("/quiz/")
-async def quiz():
+async def quiz(
+    difficulty: str = "medium"
+):
 
     global GLOBAL_CHUNKS,VIDEO_UPLOADED
 
@@ -626,16 +638,45 @@ async def quiz():
         return {"quiz": "⚠️ Transcript is empty. Please upload video again."}
 
     prompt = f"""
-You are an AI teacher.
+You are an expert teacher helping students prepare for exams.
 
-Generate 5 quiz questions.
+Generate EXACTLY 5 MCQ questions.
 
-Make the questions slightly different each time while staying relevant.
+Difficulty Level:
+{difficulty}
 
-STRICT RULES:
-- Exactly 5 questions
-- No answers
-- No explanation
+RULES:
+
+For EASY:
+- Basic recall questions
+- Simple language
+- Direct facts
+
+For MEDIUM:
+- Moderate understanding
+- Slightly conceptual
+- Mix factual + understanding
+
+For HARD:
+- Challenging
+- Conceptual + analytical
+- Exam-level tricky questions
+
+STRICT FORMAT:
+
+Q1. Question?
+
+A) Option
+B) Option
+C) Option
+D) Option
+
+✅ Correct Answer: A
+
+💡 Explanation:
+Short explanation.
+
+Repeat for exactly 5 questions.
 
 Text:
 {text}

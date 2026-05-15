@@ -345,14 +345,32 @@ async function getSummary() {
 }
 
 /* Quiz */
-async function getQuiz() {
+async function getQuiz(
+    difficulty = "medium"
+) {
+
     showLoader();
-    let res = await fetch("/quiz/");
-    let data = await res.json();
+
+    let res =
+        await fetch(
+            "/quiz/?difficulty=" +
+            difficulty
+        );
+
+    let data =
+        await res.json();
+
     hideLoader();
 
-    addMessage("📝 Quiz", "user");
-    addMessage(data.quiz, "ai");
+    addMessage(
+        `📝 ${difficulty.toUpperCase()} Quiz`,
+        "user"
+    );
+
+    addMessage(
+        data.quiz,
+        "ai"
+    );
 }
 
 /* Chat helpers */

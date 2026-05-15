@@ -68,9 +68,24 @@
 
         <!-- ⚡ ACTIONS -->
         <div class="actions">
-            <button onclick="getSummary()">📖 Summary</button>
-            <button onclick="getQuiz()">📝 Quiz</button>
-        </div>
+
+    <button onclick="getSummary()">
+        📖 Summary
+    </button>
+
+    <button onclick="getQuiz('easy')">
+        🟢 Easy Quiz
+    </button>
+
+    <button onclick="getQuiz('medium')">
+        🟡 Medium Quiz
+    </button>
+
+    <button onclick="getQuiz('hard')">
+        🔴 Hard Quiz
+    </button>
+
+</div>
 
         <!-- ⏳ LOADER -->
         <div id="loader" style="display:none; text-align:center;">
