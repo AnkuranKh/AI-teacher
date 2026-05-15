@@ -2,6 +2,9 @@ from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from youtube_transcript_api import (
+    YouTubeTranscriptApi
+)
 import os
 import shutil
 import subprocess
@@ -138,6 +141,22 @@ def download_youtube_audio(url):
             "YouTube blocked the download. "
             "Try another video or retry."
         )
+
+def get_video_id(url):
+    
+    if "watch?v=" in url:
+        return (
+            url.split("v=")[1]
+            .split("&")[0]
+        )
+
+    elif "youtu.be/" in url:
+        return (
+            url.split("youtu.be/")[1]
+            .split("?")[0]
+        )
+
+    return None
 
 # ✅ NEW helper function
 def get_file_hash(file_path):
@@ -369,47 +388,101 @@ async def upload_video(file: UploadFile = File(...)):
 @app.post("/upload-youtube/")
 async def upload_youtube(url: str):
 
-    global GLOBAL_CHUNKS, LAST_FILE_HASH
-    global UPLOAD_PROGRESS, CHAT_HISTORY, LAST_CONTEXT,VIDEO_UPLOADED
+    global GLOBAL_CHUNKS
+    global LAST_FILE_HASH
+    global UPLOAD_PROGRESS
+    global CHAT_HISTORY
+    global LAST_CONTEXT
+    global VIDEO_UPLOADED
 
     LAST_CONTEXT = ""
     CHAT_HISTORY = []
 
     UPLOAD_PROGRESS["progress"] = 5
-    UPLOAD_PROGRESS["status"] = "Downloading YouTube audio..."
+    UPLOAD_PROGRESS["status"] = (
+        "Fetching YouTube transcript..."
+    )
 
     try:
-        audio_path = download_youtube_audio(url)
+
+        video_id = get_video_id(url)
+
+        print(
+            "🎥 Video ID:",
+            video_id
+        )
+
+        if not video_id:
+
+            return {
+                "message":
+                "❌ Invalid YouTube URL."
+            }
+
+        ytt_api = (
+            YouTubeTranscriptApi()
+        )
+
+        transcript_data = (
+            ytt_api.fetch(video_id)
+        )
+
+        transcript = " ".join([
+            item.text
+            for item
+            in transcript_data
+        ])
+
+        print(
+            "✅ Transcript fetched successfully"
+        )
 
     except Exception as e:
+
+        print(
+            "❌ Transcript fetch failed:",
+            str(e)
+        )
+
         return {
             "message":
-            f"❌ Failed to download video: {str(e)}"
+            "❌ No transcript available for this video."
         }
 
     # 🔄 progress
     UPLOAD_PROGRESS["progress"] = 20
-    UPLOAD_PROGRESS["status"] = "Checking content..."
+    UPLOAD_PROGRESS["status"] = (
+        "Checking content..."
+    )
 
-    # hash check
-    current_hash = get_file_hash(audio_path)
+    # ✅ hash from URL
+    current_hash = hashlib.md5(
+        url.encode()
+    ).hexdigest()
 
-    # check if same video already processed
+    # same video check
     if (
         os.path.exists(HASH_PATH)
         and os.path.exists(INDEX_PATH)
         and os.path.exists(TRANSCRIPT_PATH)
     ):
 
-        with open(HASH_PATH, "r") as f:
-            saved_hash = f.read().strip()
+        with open(
+            HASH_PATH,
+            "r"
+        ) as f:
 
-        # SAME VIDEO
+            saved_hash = (
+                f.read().strip()
+            )
+
         if current_hash == saved_hash:
 
-            print("⚡ Same YouTube video detected")
+            print(
+                "⚡ Same YouTube video detected"
+            )
 
-            # restore chunks if server restarted
+            # restore chunks
             if not GLOBAL_CHUNKS:
 
                 with open(
@@ -417,14 +490,26 @@ async def upload_youtube(url: str):
                     "r",
                     encoding="utf-8"
                 ) as f:
-                    transcript = f.read()
 
-                GLOBAL_CHUNKS = create_chunks(transcript)
+                    transcript = (
+                        f.read()
+                    )
+
+                GLOBAL_CHUNKS = (
+                    create_chunks(
+                        transcript
+                    )
+                )
+
             VIDEO_UPLOADED = True
-            os.remove(audio_path)
 
-            UPLOAD_PROGRESS["progress"] = 100
-            UPLOAD_PROGRESS["status"] = "Done"
+            UPLOAD_PROGRESS[
+                "progress"
+            ] = 100
+
+            UPLOAD_PROGRESS[
+                "status"
+            ] = "Done"
 
             return {
                 "message":
@@ -433,59 +518,66 @@ async def upload_youtube(url: str):
                 "generate summaries or quiz."
             }
 
-    print("🆕 New YouTube video detected")
-
-    # 🔄 progress
-    UPLOAD_PROGRESS["progress"] = 30
-    UPLOAD_PROGRESS["status"] = "Preparing audio..."
-
-    # transcription
-    UPLOAD_PROGRESS["progress"] = 50
-    UPLOAD_PROGRESS["status"] = "Transcribing..."
-
-    transcript, language = transcribe_audio(audio_path)
-
-    if transcript is None:
-        os.remove(audio_path)
-
-        return {
-            "message": "❌ Unsupported language."
-        }
+    print(
+        "🆕 New YouTube video detected"
+    )
 
     # save transcript
     UPLOAD_PROGRESS["progress"] = 70
-    UPLOAD_PROGRESS["status"] = "Saving transcript..."
+    UPLOAD_PROGRESS["status"] = (
+        "Saving transcript..."
+    )
 
-    with open(TRANSCRIPT_PATH, "w", encoding="utf-8") as f:
+    with open(
+        TRANSCRIPT_PATH,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
         f.write(transcript)
 
     # chunking
     UPLOAD_PROGRESS["progress"] = 80
-    UPLOAD_PROGRESS["status"] = "Chunking..."
+    UPLOAD_PROGRESS["status"] = (
+        "Chunking..."
+    )
 
-    GLOBAL_CHUNKS = create_chunks(transcript)
+    GLOBAL_CHUNKS = (
+        create_chunks(transcript)
+    )
 
     # embeddings
     UPLOAD_PROGRESS["progress"] = 90
-    UPLOAD_PROGRESS["status"] = "Creating embeddings..."
+    UPLOAD_PROGRESS["status"] = (
+        "Creating embeddings..."
+    )
 
-    create_embeddings_from_chunks(GLOBAL_CHUNKS)
+    create_embeddings_from_chunks(
+        GLOBAL_CHUNKS
+    )
 
-    # save current hash
-    with open(HASH_PATH, "w") as f:
+    # save hash
+    with open(
+        HASH_PATH,
+        "w"
+    ) as f:
+
         f.write(current_hash)
 
-    UPLOAD_PROGRESS["progress"] = 100
-    UPLOAD_PROGRESS["status"] = "Done"
+    UPLOAD_PROGRESS[
+        "progress"
+    ] = 100
+
+    UPLOAD_PROGRESS[
+        "status"
+    ] = "Done"
+
     VIDEO_UPLOADED = True
-    # cleanup
-    os.remove(audio_path)
 
     return {
         "message":
         "✅ YouTube video processed successfully"
     }
-
 #SPLIT QUESTIONS
 def split_questions(query):
     parts = re.split(r'\?|\.\s+', query)
