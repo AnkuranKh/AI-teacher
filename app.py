@@ -491,7 +491,7 @@ async def chat(query: str):
             # 🔥 IMPORTANT FIX — now treat as normal query
             is_follow_up = False
 
-        if GLOBAL_CHUNKS:
+        if GLOBAL_CHUNKS and VIDEO_UPLOADED:
     
           # 🔥 ALWAYS retrieve (no break in old logic)
             results = ask_question(q, GLOBAL_CHUNKS, chat_history=CHAT_HISTORY)
@@ -546,8 +546,12 @@ Context:
         else:
             # ✅ Non-video question
             full_context = history_text
-            ans = generate_answer(full_context, q, False)
-
+            ans = generate_answer(
+    full_context,
+    q,
+    False,
+    no_video_uploaded=True
+)
         answers.append(ans)
 
     # 🔥 combine answers

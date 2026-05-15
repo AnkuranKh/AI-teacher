@@ -216,7 +216,12 @@ def is_follow_up_query(query):
 
 
 # 🔁 dual-mode answer
-def generate_answer(context, question, use_context=True):
+def generate_answer(
+    context,
+    question,
+    use_context=True,
+    no_video_uploaded=False
+):
 
     if use_context:
 
@@ -247,6 +252,25 @@ Answer:
 """
 
     else:
+    
+      if no_video_uploaded:
+
+        prompt = f"""
+You are a helpful AI assistant.
+
+IMPORTANT:
+- No video is uploaded.
+- First mention briefly that you are answering using your own knowledge and expertise because no video is uploaded.
+- Then answer naturally and helpfully.
+- Keep it conversational.
+
+Question:
+{question}
+
+Answer:
+"""
+
+      else:
 
         prompt = f"""
 You are a helpful AI assistant.
