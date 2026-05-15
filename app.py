@@ -13,8 +13,10 @@ import hashlib
 import glob
 import re
 import yt_dlp
-import time
 import random
+import time
+import requests
+from http.cookiejar import MozillaCookieJar
 
 # Import your existing logic
 from utils.transcribe import transcribe_audio
@@ -390,8 +392,13 @@ async def upload_video(file: UploadFile = File(...)):
 @app.post("/upload-youtube/")
 async def upload_youtube(url: str):
 
-    import time
     import random
+    import time
+    import requests
+
+    from http.cookiejar import (
+        MozillaCookieJar
+    )
 
     global GLOBAL_CHUNKS
     global LAST_FILE_HASH
@@ -424,10 +431,6 @@ async def upload_youtube(url: str):
                 "❌ Invalid YouTube URL."
             }
 
-        ytt_api = (
-            YouTubeTranscriptApi()
-        )
-
         transcript_data = None
 
         # Retry logic
@@ -442,13 +445,42 @@ async def upload_youtube(url: str):
                 print(
                     f"⏳ Waiting "
                     f"{wait_time:.2f}s "
-                    "before transcript fetch..."
+                    " before transcript fetch..."
                 )
 
                 time.sleep(wait_time)
 
+                # Create session
+                session = (
+                    requests.Session()
+                )
+
+                # Load cookies.txt
+                cookie_jar = (
+                    MozillaCookieJar()
+                )
+
+                cookie_jar.load(
+                    "cookies.txt",
+                    ignore_discard=True,
+                    ignore_expires=True
+                )
+
+                session.cookies.update(
+                    cookie_jar
+                )
+
+                # Create API client
+                ytt_api = (
+                    YouTubeTranscriptApi(
+                        http_client=session
+                    )
+                )
+
                 transcript_data = (
-                    ytt_api.fetch(video_id)
+                    ytt_api.fetch(
+                        video_id
+                    )
                 )
 
                 print(
