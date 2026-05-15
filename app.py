@@ -13,7 +13,8 @@ import hashlib
 import glob
 import re
 import yt_dlp
-
+import time
+import random
 
 # Import your existing logic
 from utils.transcribe import transcribe_audio
@@ -384,9 +385,13 @@ async def upload_video(file: UploadFile = File(...)):
 
     return {"message": "✅ Video processed successfully"}
 
+
 #UPLOAD THROUGH LINKS
 @app.post("/upload-youtube/")
 async def upload_youtube(url: str):
+
+    import time
+    import random
 
     global GLOBAL_CHUNKS
     global LAST_FILE_HASH
@@ -423,9 +428,66 @@ async def upload_youtube(url: str):
             YouTubeTranscriptApi()
         )
 
-        transcript_data = (
-            ytt_api.fetch(video_id)
-        )
+        transcript_data = None
+
+        # Retry logic
+        for attempt in range(3):
+
+            try:
+
+                wait_time = (
+                    random.uniform(2, 5)
+                )
+
+                print(
+                    f"⏳ Waiting "
+                    f"{wait_time:.2f}s "
+                    "before transcript fetch..."
+                )
+
+                time.sleep(wait_time)
+
+                transcript_data = (
+                    ytt_api.fetch(video_id)
+                )
+
+                print(
+                    f"✅ Transcript fetched "
+                    f"(attempt {attempt+1})"
+                )
+
+                break
+
+            except Exception as e:
+
+                print(
+                    f"❌ Attempt "
+                    f"{attempt+1} failed:",
+                    str(e)
+                )
+
+                if attempt < 2:
+
+                    retry_wait = (
+                        random.uniform(3, 8)
+                    )
+
+                    print(
+                        f"🔄 Retrying in "
+                        f"{retry_wait:.2f}s..."
+                    )
+
+                    time.sleep(
+                        retry_wait
+                    )
+
+        if not transcript_data:
+
+            return {
+                "message":
+                "❌ Could not retrieve transcript.\n"
+                "This video may block transcript access."
+            }
 
         transcript = " ".join([
             item.text
@@ -446,7 +508,8 @@ async def upload_youtube(url: str):
 
         return {
             "message":
-            "❌ No transcript available for this video."
+            "❌ Could not retrieve transcript.\n"
+            "This video may block transcript access."
         }
 
     # 🔄 progress
@@ -455,7 +518,7 @@ async def upload_youtube(url: str):
         "Checking content..."
     )
 
-    # ✅ hash from URL
+    # hash from URL
     current_hash = hashlib.md5(
         url.encode()
     ).hexdigest()
@@ -578,6 +641,7 @@ async def upload_youtube(url: str):
         "message":
         "✅ YouTube video processed successfully"
     }
+    
 #SPLIT QUESTIONS
 def split_questions(query):
     parts = re.split(r'\?|\.\s+', query)
