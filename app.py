@@ -569,10 +569,13 @@ Context:
 @app.get("/summary/")
 async def summary():
 
-    global GLOBAL_CHUNKS
+    global GLOBAL_CHUNKS,VIDEO_UPLOADED
 
-    if not GLOBAL_CHUNKS:
-        return {"summary": "⚠️ Please upload a video first."}
+    if not VIDEO_UPLOADED:
+        return {
+        "summary":
+        "⚠️ Please upload a video first."
+    }
 
     if not os.path.exists(TRANSCRIPT_PATH):
         return {"summary": "⚠️ Transcript missing. Please re-upload the video."}
@@ -601,10 +604,13 @@ Text:
 @app.get("/quiz/")
 async def quiz():
 
-    global GLOBAL_CHUNKS
+    global GLOBAL_CHUNKS,VIDEO_UPLOADED
 
-    if not GLOBAL_CHUNKS:
-        return {"quiz": "⚠️ Please upload a video first."}
+    if not VIDEO_UPLOADED:
+        return {
+        "quiz":
+        "⚠️ Please upload a video first."
+    }
 
     if not os.path.exists(TRANSCRIPT_PATH):
         return {"quiz": "⚠️ Transcript missing. Please re-upload the video."}
