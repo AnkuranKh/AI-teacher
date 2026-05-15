@@ -34,7 +34,7 @@ os.makedirs("data/index", exist_ok=True)
 
 GLOBAL_CHUNKS = []
 LAST_FILE_HASH = None  # ✅ NEW
-
+VIDEO_UPLOADED = False
 HASH_PATH = "data/index/last_video_hash.txt"
 #FOLLOW UP CONVERSATIONS
 CHAT_HISTORY = []
@@ -114,23 +114,40 @@ def get_progress():
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
 
-    global GLOBAL_CHUNKS, CHAT_HISTORY
+    global GLOBAL_CHUNKS
+    global CHAT_HISTORY
+    global VIDEO_UPLOADED
 
     CHAT_HISTORY = []
 
-    # Restore previous chunks after refresh/restart
-    if not GLOBAL_CHUNKS and os.path.exists(TRANSCRIPT_PATH):
+    # 🔥 refresh means no video loaded in UI
+    VIDEO_UPLOADED = False
 
-        print("♻️ Restoring previous video")
+    # restore previous chunks after refresh/restart
+    if (
+        not GLOBAL_CHUNKS
+        and os.path.exists(
+            TRANSCRIPT_PATH
+        )
+    ):
+
+        print(
+            "♻️ Restoring previous video"
+        )
 
         with open(
             TRANSCRIPT_PATH,
             "r",
             encoding="utf-8"
         ) as f:
+
             transcript = f.read()
 
-        GLOBAL_CHUNKS = create_chunks(transcript)
+        GLOBAL_CHUNKS = (
+            create_chunks(
+                transcript
+            )
+        )
 
     return templates.TemplateResponse(
         "index.html",
@@ -143,7 +160,7 @@ def home(request: Request):
 async def upload_video(file: UploadFile = File(...)):
 
     global GLOBAL_CHUNKS, LAST_FILE_HASH, UPLOAD_PROGRESS, CHAT_HISTORY
-    global LAST_CONTEXT
+    global LAST_CONTEXT,VIDEO_UPLOADED
 
     LAST_CONTEXT = ""
     CHAT_HISTORY = []
@@ -190,7 +207,7 @@ async def upload_video(file: UploadFile = File(...)):
                     transcript = f.read()
 
                 GLOBAL_CHUNKS = create_chunks(transcript)
-
+            VIDEO_UPLOADED = True
             os.remove(temp_video_path)
 
             UPLOAD_PROGRESS["progress"] = 100
@@ -279,7 +296,7 @@ async def upload_video(file: UploadFile = File(...)):
     # 🔄 Done
     UPLOAD_PROGRESS["progress"] = 100
     UPLOAD_PROGRESS["status"] = "Done"
-
+    VIDEO_UPLOADED = True
     # cleanup
     os.remove(temp_video_path)
     os.remove(temp_audio_path)
@@ -291,7 +308,7 @@ async def upload_video(file: UploadFile = File(...)):
 async def upload_youtube(url: str):
 
     global GLOBAL_CHUNKS, LAST_FILE_HASH
-    global UPLOAD_PROGRESS, CHAT_HISTORY, LAST_CONTEXT
+    global UPLOAD_PROGRESS, CHAT_HISTORY, LAST_CONTEXT,VIDEO_UPLOADED
 
     LAST_CONTEXT = ""
     CHAT_HISTORY = []
@@ -341,7 +358,7 @@ async def upload_youtube(url: str):
                     transcript = f.read()
 
                 GLOBAL_CHUNKS = create_chunks(transcript)
-
+            VIDEO_UPLOADED = True
             os.remove(audio_path)
 
             UPLOAD_PROGRESS["progress"] = 100
@@ -398,7 +415,7 @@ async def upload_youtube(url: str):
 
     UPLOAD_PROGRESS["progress"] = 100
     UPLOAD_PROGRESS["status"] = "Done"
-
+    VIDEO_UPLOADED = True
     # cleanup
     os.remove(audio_path)
 
@@ -418,8 +435,15 @@ async def chat(query: str):
 
     global CHAT_HISTORY, LAST_CONTEXT  # ✅ UPDATED
 
-    if is_video_question(query) and not GLOBAL_CHUNKS:
-        return {"answer": "⚠️ Please upload a video first."}
+    if (
+    is_video_question(query)
+    and
+    not VIDEO_UPLOADED
+):
+      return {
+        "answer":
+        "⚠️ Please upload a video first."
+    }
 
     # ✅ STEP 2 — Build history (UNCHANGED)
     history_text = ""
