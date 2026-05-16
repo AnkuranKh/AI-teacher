@@ -443,7 +443,23 @@ async def upload_youtube(url: str):
         cookie_jar = (
             MozillaCookieJar()
         )
-        
+        print(
+    "📂 cookies exists:",
+    os.path.exists(
+        "cookies.txt"
+    )
+)
+
+        if os.path.exists(
+    "cookies.txt"
+):
+
+           print(
+        "📄 cookies size:",
+        os.path.getsize(
+            "cookies.txt"
+        )
+    )
         cookie_jar.load(
             "cookies.txt",
             ignore_discard=True,
