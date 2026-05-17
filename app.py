@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from youtube_transcript_api import (
     YouTubeTranscriptApi
 )
+from utils.exam_profiles import EXAM_CONFIGS
 import os
 import shutil
 import subprocess
@@ -22,7 +23,7 @@ from http.cookiejar import MozillaCookieJar
 from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
 from utils.embeddings import create_embeddings_from_chunks
-from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai
+from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai
 
 app = FastAPI()
 
@@ -41,6 +42,8 @@ os.makedirs("data/index", exist_ok=True)
 GLOBAL_CHUNKS = []
 LAST_FILE_HASH = None  # ✅ NEW
 VIDEO_UPLOADED = False
+CURRENT_EXAM = "upsc"
+
 HASH_PATH = "data/index/last_video_hash.txt"
 #FOLLOW UP CONVERSATIONS
 CHAT_HISTORY = []
@@ -213,11 +216,14 @@ def app_page(
     global GLOBAL_CHUNKS
     global CHAT_HISTORY
     global VIDEO_UPLOADED
+    global CURRENT_EXAM
 
     CHAT_HISTORY = []
 
-    # refresh means no video loaded in UI
     VIDEO_UPLOADED = False
+
+    # save selected exam globally
+    CURRENT_EXAM = exam.lower()
 
     # restore previous chunks
     if (
@@ -245,7 +251,6 @@ def app_page(
             )
         )
 
-    # exam display mapping
     exam_names = {
         "upsc": "UPSC",
         "apsc": "APSC",
@@ -256,8 +261,13 @@ def app_page(
     }
 
     selected_exam = exam_names.get(
-        exam.lower(),
+        CURRENT_EXAM,
         "UPSC"
+    )
+
+    print(
+        "🎯 Current Exam:",
+        CURRENT_EXAM
     )
 
     return templates.TemplateResponse(
@@ -713,103 +723,212 @@ def split_questions(query):
 @app.post("/chat/")
 async def chat(query: str):
 
-    global CHAT_HISTORY, LAST_CONTEXT  # ✅ UPDATED
+    global CHAT_HISTORY
+    global LAST_CONTEXT
+    global CURRENT_EXAM
 
+    # ✅ Video required check
     if (
-    is_video_question(query)
-    and
-    not VIDEO_UPLOADED
-):
-      return {
-        "answer":
-        "⚠️ Please upload a video first."
-    }
+        is_video_question(query)
+        and
+        not VIDEO_UPLOADED
+    ):
+        return {
+            "answer":
+            "⚠️ Please upload a video first."
+        }
 
-    # ✅ STEP 2 — Build history (UNCHANGED)
+    # ✅ Build history (UNCHANGED)
     history_text = ""
-    for q_hist, a_hist in CHAT_HISTORY[-3:]:
-        history_text += f"Student: {q_hist}\nTeacher: {a_hist}\n"
 
-    # 🔥 NEW — split questions
+    for q_hist, a_hist in CHAT_HISTORY[-3:]:
+
+        history_text += (
+            f"Student: {q_hist}\n"
+            f"Teacher: {a_hist}\n"
+        )
+
+    # 🔥 Split questions
     questions = split_questions(query)
+
     answers = []
 
-    current_topic = ""  # 🔥 track topic
+    current_topic = ""
 
     for q in questions:
 
-        original_q = q  # keep original
+        original_q = q
 
-        # 🔥 STEP 1 — detect follow-up
-        is_follow_up = is_follow_up_query(original_q)
+        # 🔥 Detect follow-up
+        is_follow_up = (
+            is_follow_up_query(
+                original_q
+            )
+        )
 
-        # 🔥 STEP 2 — update topic (only for non-follow-up)
+        # 🔥 Update topic
         if not is_follow_up:
+
             if "fiber" in q.lower():
-                current_topic = "fiber internet"
+                current_topic = (
+                    "fiber internet"
+                )
+
             elif "cable" in q.lower():
-                current_topic = "cable internet"
+                current_topic = (
+                    "cable internet"
+                )
+
             elif len(q.split()) > 3:
-                current_topic = q  # fallback (keep full question if needed)
+                current_topic = q
 
-        elif not current_topic and CHAT_HISTORY:
-               last_q = CHAT_HISTORY[-1][0].lower()
+        elif (
+            not current_topic
+            and CHAT_HISTORY
+        ):
 
-               if "slr" in last_q:
-                 current_topic = "SLR"
-               elif "dslr" in last_q:
-                 current_topic = "DSLR"
-               elif "fiber" in last_q:
-                 current_topic = "fiber internet"
-               elif "cable" in last_q:
-                current_topic = "cable internet"
+            last_q = (
+                CHAT_HISTORY[-1][0]
+                .lower()
+            )
 
-        # 🔥 STEP 3 — resolve pronouns
-        if is_follow_up and current_topic:
-            q = resolve_pronouns(q, current_topic)
+            if "slr" in last_q:
+                current_topic = "SLR"
 
-            # 🔥 IMPORTANT FIX — now treat as normal query
+            elif "dslr" in last_q:
+                current_topic = "DSLR"
+
+            elif "fiber" in last_q:
+                current_topic = (
+                    "fiber internet"
+                )
+
+            elif "cable" in last_q:
+                current_topic = (
+                    "cable internet"
+                )
+
+        # 🔥 Resolve pronouns
+        if (
+            is_follow_up
+            and current_topic
+        ):
+
+            q = resolve_pronouns(
+                q,
+                current_topic
+            )
+
+            # IMPORTANT FIX
             is_follow_up = False
 
-        if GLOBAL_CHUNKS and VIDEO_UPLOADED:
-    
-          # 🔥 ALWAYS retrieve (no break in old logic)
-            results = ask_question(q, GLOBAL_CHUNKS, chat_history=CHAT_HISTORY)
-            print("\n================ DEBUG =================")
-            print("QUERY:", q)
+        # =================================
+        # VIDEO QUESTION MODE (RAG)
+        # =================================
 
-            for i, r in enumerate(results[:5]):
-              print(f"\nCHUNK {i+1}:")
-              print(r[:200])  # print first 200 chars only
+        if (
+            GLOBAL_CHUNKS
+            and VIDEO_UPLOADED
+        ):
 
-            print("========================================\n")
-            new_context = "\n\n".join(results[:5])
+            # Always retrieve
+            results = ask_question(
+                q,
+                GLOBAL_CHUNKS,
+                chat_history=CHAT_HISTORY
+            )
 
-          # 🔥 HYBRID CONTEXT (key change)
-            if is_follow_up and LAST_CONTEXT:
-               context = LAST_CONTEXT + "\n\n" + new_context
+            print(
+                "\n================ DEBUG ================="
+            )
+
+            print(
+                "QUERY:",
+                q
+            )
+
+            for i, r in enumerate(
+                results[:5]
+            ):
+
+                print(
+                    f"\nCHUNK {i+1}:"
+                )
+
+                print(
+                    r[:200]
+                )
+
+            print(
+                "========================================\n"
+            )
+
+            new_context = (
+                "\n\n".join(
+                    results[:5]
+                )
+            )
+
+            # Hybrid context
+            if (
+                is_follow_up
+                and LAST_CONTEXT
+            ):
+
+                context = (
+                    LAST_CONTEXT
+                    + "\n\n"
+                    + new_context
+                )
+
             else:
-               context = new_context
-          
-          # 🔥 SAFETY LIMIT
-            context = context[-3000:]
-          
-          # 🔥 update memory (same as before)
+                context = (
+                    new_context
+                )
+
+            # Safety limit
+            context = (
+                context[-3000:]
+            )
+
             LAST_CONTEXT = context
 
-            # 🟢 MODE 1 — RAG
+            # MODE 1 — RAG
             if not is_follow_up:
-                results = ask_question(q, GLOBAL_CHUNKS, chat_history=CHAT_HISTORY)
-                new_context = "\n\n".join(results[:5])
 
-                context = new_context
-                LAST_CONTEXT = context
+                results = ask_question(
+                    q,
+                    GLOBAL_CHUNKS,
+                    chat_history=CHAT_HISTORY
+                )
 
-            # 🔵 MODE 2 — Follow-up (fallback)
+                new_context = (
+                    "\n\n".join(
+                        results[:5]
+                    )
+                )
+
+                context = (
+                    new_context
+                )
+
+                LAST_CONTEXT = (
+                    context
+                )
+
+            # MODE 2 — Follow-up
             else:
-                context = LAST_CONTEXT
 
-            last_topic = CHAT_HISTORY[-1][0] if CHAT_HISTORY else ""
+                context = (
+                    LAST_CONTEXT
+                )
+
+            last_topic = (
+                CHAT_HISTORY[-1][0]
+                if CHAT_HISTORY
+                else ""
+            )
+
             full_context = f"""
 Previous Topic:
 {last_topic}
@@ -821,75 +940,134 @@ Context:
 {context}
 """
 
-            ans = generate_answer(full_context, q, True)
+            # ✅ ONLY CHANGE HERE
+            ans = generate_answer(
+                full_context,
+                q,
+                exam=CURRENT_EXAM,
+                use_context=True
+            )
+
+        # =================================
+        # NON-VIDEO QUESTION
+        # =================================
 
         else:
-            # ✅ Non-video question
-            full_context = history_text
+
+            full_context = (
+                history_text
+            )
+
+            # ✅ ONLY CHANGE HERE
             ans = generate_answer(
-    full_context,
-    q,
-    False,
-    no_video_uploaded=True
-)
+                full_context,
+                q,
+                exam=CURRENT_EXAM,
+                use_context=False,
+                no_video_uploaded=True
+            )
+
         answers.append(ans)
 
-    # 🔥 combine answers
-    final_answer = "\n\n".join(answers)
+    # 🔥 Combine answers
+    final_answer = (
+        "\n\n".join(answers)
+    )
 
     # ✅ Save conversation
-    CHAT_HISTORY.append((query, final_answer))
+    CHAT_HISTORY.append(
+        (
+            query,
+            final_answer
+        )
+    )
 
     if len(CHAT_HISTORY) > 10:
         CHAT_HISTORY.pop(0)
 
-    return {"answer": final_answer}
+    return {
+        "answer":
+        final_answer
+    }
 
 # ⚡ Summary
 @app.get("/summary/")
 async def summary():
 
-    global GLOBAL_CHUNKS,VIDEO_UPLOADED
+    global GLOBAL_CHUNKS
+    global VIDEO_UPLOADED
+    global CURRENT_EXAM
 
     if not VIDEO_UPLOADED:
         return {
-        "summary":
-        "⚠️ Please upload a video first."
-    }
+            "summary":
+            "⚠️ Please upload a video first."
+        }
 
-    if not os.path.exists(TRANSCRIPT_PATH):
-        return {"summary": "⚠️ Transcript missing. Please re-upload the video."}
+    if not os.path.exists(
+        TRANSCRIPT_PATH
+    ):
+        return {
+            "summary":
+            "⚠️ Transcript missing. Please re-upload the video."
+        }
 
-    with open(TRANSCRIPT_PATH, "r", encoding="utf-8") as f:
+    with open(
+        TRANSCRIPT_PATH,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
         text = f.read()
 
     if not text.strip():
-        return {"summary": "⚠️ Transcript is empty. Please upload video again."}
+        return {
+            "summary":
+            "⚠️ Transcript is empty. Please upload video again."
+        }
+
+    # ✅ Exam config
+    exam_config = EXAM_CONFIGS.get(
+        CURRENT_EXAM,
+        EXAM_CONFIGS["upsc"]
+    )
+
+    summary_style = (
+        exam_config[
+            "summary_style"
+        ]
+    )
 
     prompt = f"""
 You are an expert teacher helping students revise quickly.
 
-Create an INTERACTIVE STUDY SUMMARY.
+Exam Mode:
+{CURRENT_EXAM.upper()}
 
-Structure:
+Instructions:
+{summary_style}
 
-1. 📌 Key Topics Covered
-2. 🧠 Easy Explanation
-3. 🎯 Exam-Relevant Points
-4. ⚡ Quick Revision Notes
-5. ❓ 3 Possible Viva Questions
+Keep the summary:
+- Student friendly
+- Structured
+- Easy to revise
+- Exam focused
 
-Keep it student-friendly and engaging.
-
-Text:
-{text[:35000]}
+Transcript:
+{text}
 """
 
-    summary = generate_summary_openai(
-    prompt
-)
+    # ✅ OPENAI summary
+    summary = (
+        generate_summary_openai(
+            prompt
+        )
+    )
 
-    return {"summary": summary}
+    return {
+        "summary":
+        summary
+    }
 
 
 # 📝 Quiz generator
@@ -898,86 +1076,84 @@ async def quiz(
     difficulty: str = "medium"
 ):
 
-    global GLOBAL_CHUNKS,VIDEO_UPLOADED
+    global VIDEO_UPLOADED
+    global CURRENT_EXAM
 
     if not VIDEO_UPLOADED:
+
         return {
-        "quiz":
-        "⚠️ Please upload a video first."
-    }
+            "quiz":
+            "⚠️ Please upload a video first."
+        }
 
-    if not os.path.exists(TRANSCRIPT_PATH):
-        return {"quiz": "⚠️ Transcript missing. Please re-upload the video."}
+    if not os.path.exists(
+        TRANSCRIPT_PATH
+    ):
 
-    with open(TRANSCRIPT_PATH, "r", encoding="utf-8") as f:
+        return {
+            "quiz":
+            "⚠️ Transcript missing."
+        }
+
+    with open(
+        TRANSCRIPT_PATH,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
         text = f.read()
 
-    # 🔥 LIMIT INPUT SIZE (prevents confusion for long videos)
-    if len(text) > 3000:
-        text = text[:3000]
-
     if not text.strip():
-        return {"quiz": "⚠️ Transcript is empty. Please upload video again."}
+
+        return {
+            "quiz":
+            "⚠️ Transcript is empty."
+        }
+
+    # ✅ exam config
+    exam_config = EXAM_CONFIGS.get(
+        CURRENT_EXAM,
+        EXAM_CONFIGS["upsc"]
+    )
+
+    quiz_style = (
+        exam_config[
+            "quiz_style"
+        ]
+    )
 
     prompt = f"""
-You are an expert teacher creating exam practice quizzes.
+You are an expert government exam teacher.
 
-Generate EXACTLY 5 MCQ questions ONLY from the provided video content.
+Exam Mode:
+{CURRENT_EXAM.upper()}
 
-DIFFICULTY LEVEL:
+Instructions:
+{quiz_style}
+
+Difficulty:
 {difficulty.upper()}
 
-STRICT DIFFICULTY RULES:
+Create 5 quiz questions.
 
-IF EASY:
-- Very basic recall questions
-- Ask definitions, names, facts
-- Straightforward answers
-- Suitable for beginners
+Rules:
+- Make them exam-relevant
+- Match the selected exam style
+- Use transcript content
+- Include answers
+- Keep formatting clean
 
-IF MEDIUM:
-- Moderate difficulty
-- Ask understanding + concept application
-- Include reasoning-based questions
-- Suitable for exam preparation
-
-IF HARD:
-- Difficult and tricky
-- Ask analytical and conceptual questions
-- Include confusing options
-- UPSC/APSC-style thinking
-- Avoid direct factual recall
-
-VERY IMPORTANT:
-- Each difficulty MUST generate DIFFERENT questions.
-- Do NOT repeat questions across difficulty levels.
-- HARD should feel noticeably harder than EASY.
-- Questions must be based ONLY on the video.
-
-STRICT FORMAT:
-
-Q1. Question?
-
-A) Option
-B) Option
-C) Option
-D) Option
-
-✅ Correct Answer: A
-
-💡 Explanation:
-Brief explanation.
-
-Generate EXACTLY 5 questions.
-
-Video Content:
+Transcript:
 {text}
 """
 
-    questions = generate_answer("", prompt, False)
+    questions = (
+    generate_quiz_openai(
+        prompt
+    )
+)
 
-    # 🛑 Safety guard
-    if "summary" in questions.lower() or len(questions.strip()) < 20:
-        questions = "⚠️ Quiz generation failed. Try again or upload clearer content."
-
-    return {"quiz": questions}
+    return {
+        "quiz":
+        questions
+    }

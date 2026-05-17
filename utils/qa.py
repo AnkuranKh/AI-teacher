@@ -5,6 +5,7 @@ import torch
 
 from openai import OpenAI
 from dotenv import load_dotenv
+from utils.exam_profiles import EXAM_CONFIGS
 
 # ✅ Reduce memory/thread pressure
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -205,14 +206,31 @@ def is_follow_up_query(query):
 def generate_answer(
     context,
     question,
+    exam="upsc",
     use_context=True,
     no_video_uploaded=False
 ):
+
+    # ✅ Get exam config safely
+    exam_config = EXAM_CONFIGS.get(
+        exam.lower(),
+        EXAM_CONFIGS["upsc"]
+    )
+
+    chat_style = (
+        exam_config["chat_style"]
+    )
 
     if use_context:
 
         prompt = f"""
 You are a strict AI teacher helping a student understand a video.
+
+Exam Mode:
+{exam.upper()}
+
+Answer Style:
+{chat_style}
 
 Follow these rules strictly:
 
@@ -227,7 +245,9 @@ Follow these rules strictly:
      "Not found in the video."
    - Then answer using your own knowledge
 
-4. Be conversational and helpful.
+4. Follow the exam style strictly.
+
+5. Be conversational and helpful.
 
 Context:
 {context}
@@ -245,6 +265,12 @@ Answer:
             prompt = f"""
 You are a helpful AI assistant.
 
+Exam Mode:
+{exam.upper()}
+
+Answer Style:
+{chat_style}
+
 IMPORTANT:
 - No video is uploaded.
 - First briefly mention that
@@ -252,6 +278,7 @@ IMPORTANT:
   own knowledge because no
   video is uploaded.
 - Then answer naturally.
+- Follow the exam style strictly.
 
 Question:
 {question}
@@ -263,6 +290,15 @@ Answer:
 
             prompt = f"""
 You are a helpful AI assistant.
+
+Exam Mode:
+{exam.upper()}
+
+Answer Style:
+{chat_style}
+
+IMPORTANT:
+- Follow the exam style strictly.
 
 Question:
 {question}
@@ -287,57 +323,6 @@ Answer:
         .choices[0]
         .message.content
     )
-
-
-if __name__ == "__main__":
-
-    print(
-        "🤖 Ask questions "
-        "(type 'exit' to quit)"
-    )
-
-    while True:
-
-        query = input(
-            "\n❓ Your question: "
-        )
-
-        query_lower = query.lower()
-
-        if any(
-            word in query_lower
-            for word in EXIT_WORDS
-        ):
-
-            print(
-                "\n👋 Got it! "
-                "See you later.\n"
-            )
-
-            break
-
-        if is_video_question(query):
-
-            print(
-                "⚠️ This mode "
-                "requires chunks "
-                "(not available "
-                "in CLI version)."
-            )
-
-        else:
-
-            answer = generate_answer(
-                "",
-                query,
-                use_context=False
-            )
-
-            print(
-                "\n🧠 AI Answer:\n"
-            )
-
-            print(answer)
             
 
 # ✅ OpenAI summary generator
@@ -386,3 +371,60 @@ def generate_summary_openai(prompt):
         return (
             "❌ Failed to generate summary."
         )            
+        
+
+def generate_quiz_openai(prompt):
+    
+    try:
+
+        response = (
+            embedding_client
+            .chat
+            .completions
+            .create(
+
+                model="gpt-4o-mini",
+
+                messages=[
+
+                    {
+                        "role": "system",
+                        "content":
+                        (
+                            "You are an expert "
+                            "government exam "
+                            "teacher who creates "
+                            "high-quality quizzes."
+                        )
+                    },
+
+                    {
+                        "role": "user",
+                        "content":
+                            prompt
+                    }
+                ],
+
+                temperature=0.5,
+
+                max_tokens=1000
+            )
+        )
+
+        return (
+            response
+            .choices[0]
+            .message.content
+        )
+
+    except Exception as e:
+
+        print(
+            "❌ OpenAI quiz error:",
+            e
+        )
+
+        return (
+            "❌ Failed to generate quiz."
+        )        
+        
