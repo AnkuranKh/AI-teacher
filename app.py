@@ -396,10 +396,6 @@ async def upload_youtube(url: str):
     import time
     import requests
 
-    from http.cookiejar import (
-        MozillaCookieJar
-    )
-
     global GLOBAL_CHUNKS
     global LAST_FILE_HASH
     global UPLOAD_PROGRESS
@@ -431,81 +427,7 @@ async def upload_youtube(url: str):
                 "❌ Invalid YouTube URL."
             }
 
-        # -------------------------
-        # CREATE SESSION ONLY ONCE
-        # -------------------------
-
-        session = (
-            requests.Session()
-        )
-        # Make Render look like Chrome
-        session.headers.update({
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; "
-        "Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) "
-        "Chrome/125.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language":
-        "en-US,en;q=0.9",
-    "Accept":
-        "text/html,application/xhtml+xml,"
-        "application/xml;q=0.9,image/avif,"
-        "image/webp,*/*;q=0.8",
-    "Referer":
-        "https://www.youtube.com/",
-    "Origin":
-        "https://www.youtube.com"
-})
-        # Load cookies.txt
-        cookie_jar = (
-            MozillaCookieJar()
-        )
-        print(
-    "📂 cookies exists:",
-    os.path.exists(
-        "cookies.txt"
-    )
-)
-
-        if os.path.exists(
-    "cookies.txt"
-):
-
-           print(
-        "📄 cookies size:",
-        os.path.getsize(
-            "cookies.txt"
-        )
-    )
-        cookie_jar.load(
-            "cookies.txt",
-            ignore_discard=True,
-            ignore_expires=True
-        )
-
-        print(
-            "🍪 Cookies loaded:",
-            len(cookie_jar)
-        )
-
-        # Inject cookies manually
-        for cookie in cookie_jar:
-
-            session.cookies.set(
-                cookie.name,
-                cookie.value,
-                domain=cookie.domain
-            )
-
-        # Create ONE API client
-        ytt_api = (
-            YouTubeTranscriptApi(
-                http_client=session
-            )
-        )
-
-        transcript_data = None
+        transcript = None
 
         # -------------------------
         # RETRY LOGIC
@@ -527,10 +449,43 @@ async def upload_youtube(url: str):
 
                 time.sleep(wait_time)
 
-                transcript_data = (
-                    ytt_api.fetch(
+                transcript_service = os.getenv(
+                    "TRANSCRIPT_SERVICE_URL"
+                )
+
+                print(
+                    "🌐 Transcript service:",
+                    transcript_service
+                )
+
+                response = requests.post(
+                    f"{transcript_service}/get-transcript",
+                    json={
+                        "video_id":
                         video_id
+                    },
+                    timeout=60
+                )
+
+                result = (
+                    response.json()
+                )
+
+                if not result.get(
+                    "success"
+                ):
+
+                    raise Exception(
+                        result.get(
+                            "error",
+                            "Transcript service failed"
+                        )
                     )
+
+                transcript = (
+                    result[
+                        "transcript"
+                    ]
                 )
 
                 print(
@@ -563,19 +518,13 @@ async def upload_youtube(url: str):
                         retry_wait
                     )
 
-        if not transcript_data:
+        if not transcript:
 
             return {
                 "message":
                 "❌ Could not retrieve transcript.\n"
-                "This video may block transcript access."
+                "Transcript service failed."
             }
-
-        transcript = " ".join([
-            item.text
-            for item
-            in transcript_data
-        ])
 
         print(
             "✅ Transcript fetched successfully"
@@ -591,7 +540,7 @@ async def upload_youtube(url: str):
         return {
             "message":
             "❌ Could not retrieve transcript.\n"
-            "This video may block transcript access."
+            "Transcript service failed."
         }
 
     # 🔄 progress

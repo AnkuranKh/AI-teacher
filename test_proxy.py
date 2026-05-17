@@ -1,76 +1,117 @@
 import requests
+
+from http.cookiejar import (
+    MozillaCookieJar
+)
+
 from youtube_transcript_api import (
     YouTubeTranscriptApi
 )
 
 video_id = "7o0NkKez1AY"
 
-proxies_to_test = [
+# YOUR RESIDENTIAL PROXY
+proxy_url = (
+    "http://USERNAME:PASSWORD@HOST:PORT"
+)
 
-    "http://174.138.165.108:9276",
+try:
 
-    "http://174.138.162.197:8254",
-
-    "http://38.127.179.147:37234",
-    
-    "http://138.68.235.51:80",
-
-    "http://174.138.165.78:9814",
-]
-
-for proxy_url in proxies_to_test:
-
-    print("\n" + "=" * 50)
     print(
-        f"🔍 Testing: {proxy_url}"
+        "🔄 Testing residential proxy..."
     )
 
-    session = requests.Session()
+    session = (
+        requests.Session()
+    )
 
+    # Make request look like Chrome
+    session.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 "
+            "(Windows NT 10.0; "
+            "Win64; x64) "
+            "AppleWebKit/537.36 "
+            "(KHTML, like Gecko) "
+            "Chrome/125.0.0.0 "
+            "Safari/537.36"
+        ),
+        "Accept-Language":
+            "en-US,en;q=0.9",
+        "Referer":
+            "https://www.youtube.com/"
+    })
+
+    # Add residential proxy
     session.proxies = {
         "http": proxy_url,
         "https": proxy_url
     }
 
-    session.timeout = 10
+    # Load cookies.txt
+    cookie_jar = (
+        MozillaCookieJar()
+    )
 
-    try:
+    cookie_jar.load(
+        "cookies.txt",
+        ignore_discard=True,
+        ignore_expires=True
+    )
 
-        response = session.get(
-            "https://httpbin.org/ip",
-            timeout=10
+    print(
+        "🍪 Cookies loaded:",
+        len(cookie_jar)
+    )
+
+    # Inject cookies
+    for cookie in cookie_jar:
+
+        session.cookies.set(
+            cookie.name,
+            cookie.value,
+            domain=cookie.domain
         )
 
-        print(
-            "🌍 Proxy works:"
+    # Check proxy IP
+    response = session.get(
+        "https://httpbin.org/ip",
+        timeout=15
+    )
+
+    print(
+        "🌍 Proxy IP:"
+    )
+
+    print(
+        response.text
+    )
+
+    # Fetch transcript
+    ytt_api = (
+        YouTubeTranscriptApi(
+            http_client=session
         )
+    )
 
-        print(response.text)
-
-        ytt_api = (
-            YouTubeTranscriptApi(
-                http_client=session
-            )
+    transcript = (
+        ytt_api.fetch(
+            video_id
         )
+    )
 
-        transcript = (
-            ytt_api.fetch(video_id)
-        )
+    print(
+        "✅ SUCCESS!"
+    )
 
-        print(
-            "✅ SUCCESS!"
-        )
+    print(
+        transcript[0].text
+    )
 
-        print(
-            transcript[0].text
-        )
+except Exception as e:
 
-        break
+    print(
+        "❌ FAILED"
+    )
 
-    except Exception as e:
-
-        print(
-            "❌ FAILED"
-        )
-
-        print(str(e))
+    print(str(e))
