@@ -77,10 +77,19 @@ async def get_transcript(
         )
 
         transcript_data = (
-            ytt_api.fetch(
-                data.video_id
-            )
-        )
+    ytt_api.fetch(
+        data.video_id,
+
+        languages=[
+            "en",
+            "hi",
+            "en-IN",
+            "hi-IN",
+            "as",
+            "bn"
+        ]
+    )
+)
 
         transcript = (
             " ".join([
