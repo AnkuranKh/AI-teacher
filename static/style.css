@@ -83,6 +83,56 @@ body {
 }
 
 
+/* ---------- EXAM BANNER ---------- */
+
+.exam-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(250, 204, 21, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.22);
+    backdrop-filter: blur(20px);
+    padding: 18px 22px;
+    border-radius: 22px;
+    margin-bottom: 8px;
+}
+
+.exam-banner-icon {
+    font-size: 2rem;
+}
+
+.exam-banner h3 {
+    margin: 0;
+    color: #facc15;
+    font-size: 1.1rem;
+}
+
+.exam-banner p {
+    margin: 4px 0 0;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.95rem;
+}
+
+
+/* MOBILE */
+
+@media (max-width:768px) {
+    .exam-banner {
+        padding: 16px;
+        border-radius: 18px;
+    }
+    .exam-banner-icon {
+        font-size: 1.7rem;
+    }
+    .exam-banner h3 {
+        font-size: 1rem;
+    }
+    .exam-banner p {
+        font-size: 0.9rem;
+    }
+}
+
+
 /* ---------- FEATURE CARDS ---------- */
 
 .feature-row {

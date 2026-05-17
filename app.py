@@ -205,7 +205,10 @@ def landing(request: Request):
 
 
 @app.get("/app", response_class=HTMLResponse)
-def home(request: Request):
+def app_page(
+    request: Request,
+    exam: str = "upsc"
+):
 
     global GLOBAL_CHUNKS
     global CHAT_HISTORY
@@ -216,7 +219,7 @@ def home(request: Request):
     # refresh means no video loaded in UI
     VIDEO_UPLOADED = False
 
-    # restore previous chunks after refresh/restart
+    # restore previous chunks
     if (
         not GLOBAL_CHUNKS
         and os.path.exists(
@@ -242,9 +245,28 @@ def home(request: Request):
             )
         )
 
+    # exam display mapping
+    exam_names = {
+        "upsc": "UPSC",
+        "apsc": "APSC",
+        "ssc": "SSC",
+        "banking": "Banking",
+        "railway": "Railway",
+        "adre": "ADRE"
+    }
+
+    selected_exam = exam_names.get(
+        exam.lower(),
+        "UPSC"
+    )
+
     return templates.TemplateResponse(
         "index.html",
-        {"request": request}
+        {
+            "request": request,
+            "selected_exam":
+                selected_exam
+        }
     )
 
 
