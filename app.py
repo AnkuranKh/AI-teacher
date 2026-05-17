@@ -196,6 +196,15 @@ def get_progress():
 
 # 🌐 UI Route 
 @app.get("/", response_class=HTMLResponse)
+def landing(request: Request):
+
+    return templates.TemplateResponse(
+        "landing.html",
+        {"request": request}
+    )
+
+
+@app.get("/app", response_class=HTMLResponse)
 def home(request: Request):
 
     global GLOBAL_CHUNKS
@@ -204,7 +213,7 @@ def home(request: Request):
 
     CHAT_HISTORY = []
 
-    # 🔥 refresh means no video loaded in UI
+    # refresh means no video loaded in UI
     VIDEO_UPLOADED = False
 
     # restore previous chunks after refresh/restart
