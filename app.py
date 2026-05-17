@@ -888,7 +888,7 @@ async def chat(query: str):
 
             # Safety limit
             context = (
-                context[-3000:]
+                context[-1800:]
             )
 
             LAST_CONTEXT = context

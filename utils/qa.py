@@ -82,7 +82,7 @@ def extract_last_topic(chat_history):
 def ask_question(
     query,
     chunks,
-    k=30,   # slightly increased since reranker removed
+    k=12,   # slightly increased since reranker removed
     chat_history=None
 ):
 
@@ -131,7 +131,7 @@ def ask_question(
         ]
 
     # ✅ TEMP: Disable reranker for Render stability
-    return results[:5]
+    return results[:3]
 
 
 # detect if question is about video
