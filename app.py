@@ -22,7 +22,7 @@ from http.cookiejar import MozillaCookieJar
 from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
 from utils.embeddings import create_embeddings_from_chunks
-from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query
+from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai
 
 app = FastAPI()
 
@@ -860,10 +860,12 @@ Structure:
 Keep it student-friendly and engaging.
 
 Text:
-{text}
+{text[:35000]}
 """
 
-    summary = generate_answer("", prompt, False)
+    summary = generate_summary_openai(
+    prompt
+)
 
     return {"summary": summary}
 

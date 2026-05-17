@@ -338,3 +338,51 @@ if __name__ == "__main__":
             )
 
             print(answer)
+            
+
+# ✅ OpenAI summary generator
+def generate_summary_openai(prompt):
+
+    try:
+
+        response = embedding_client.chat.completions.create(
+            model="gpt-4o-mini",
+
+            messages=[
+                {
+                    "role": "system",
+                    "content":
+                    (
+                        "You are an expert teacher helping "
+                        "students revise educational videos "
+                        "for government exams."
+                    )
+                },
+
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+
+            temperature=0.5,
+
+            max_tokens=1200
+        )
+
+        return (
+            response
+            .choices[0]
+            .message.content
+        )
+
+    except Exception as e:
+
+        print(
+            "❌ OpenAI summary error:",
+            e
+        )
+
+        return (
+            "❌ Failed to generate summary."
+        )            
