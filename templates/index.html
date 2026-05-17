@@ -1,111 +1,216 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>AI Learning Assistant</title>
+    <title>AI Exam Mentor</title>
 
     <link rel="preconnect"
-    href="https://fonts.googleapis.com">
+        href="https://fonts.googleapis.com">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-    rel="stylesheet">
+        rel="stylesheet">
 
     <link rel="stylesheet"
-    href="/static/style.css">
+        href="/static/style.css">
 </head>
+
 <body>
 
     <div class="container">
 
-        <h1>🧠 Conversational Retrieval System</h1>
+        <!-- HERO SECTION -->
+        <div class="hero-section">
 
-        <!-- 🔼 UPLOAD SECTION -->
+            <div class="logo-title">
+                🎯 AI Exam Mentor
+            </div>
+
+            <p class="tagline">
+                Your AI-powered study companion for Government Exam Preparation
+            </p>
+
+            <h1 class="hero-heading">
+                What would you like to study today? 📚
+            </h1>
+
+            <p class="hero-subtitle">
+                Upload educational video or add educational videos through YouTube and let AI help you prepare smarter.
+            </p>
+
+        </div>
+
+        <!-- FEATURE CARDS -->
+        <div class="feature-row">
+
+            <div class="feature-card">
+                📰
+                <h4>Current Affairs</h4>
+                <p>Stay updated for UPSC, APSC, SSC & Banking exams</p>
+            </div>
+
+            <div class="feature-card">
+                📖
+                <h4>Quick Summary</h4>
+                <p>Generate concise summaries instantly</p>
+            </div>
+
+            <div class="feature-card">
+                📝
+                <h4>Practice Quiz</h4>
+                <p>Improve with AI-generated questions</p>
+            </div>
+
+            <div class="feature-card">
+                💬
+                <h4>Ask Doubts</h4>
+                <p>Get instant AI explanations from study material</p>
+            </div>
+
+        </div>
+
+        <!-- UPLOAD SECTION -->
         <div class="top-section">
+
             <div class="input-section">
 
+                <!-- Upload Box -->
                 <div class="upload-box">
-                    <h3>📁 Upload Video</h3>
-                    <input type="file" id="videoFile">
-                    <button onclick="upload()">Upload & Process</button>
+
+                    <h3>
+                        📁 Upload Educational Video
+                    </h3>
+
+                    <p class="card-text">
+                        Upload lectures, PDFs or study videos
+                    </p>
+
+                    <input type="file"
+                        id="videoFile">
+
+                    <button onclick="upload()">
+                        Upload & Process
+                    </button>
+
                 </div>
 
-                <div class="divider">OR</div>
+                <div class="divider">
+                    OR
+                </div>
 
+                <!-- YouTube Box -->
                 <div class="youtube-box">
-                    <h3>🔗 YouTube Link</h3>
-                    <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here...">
-                    <button onclick="uploadYouTube()">Process</button>
+
+                    <h3>
+                        📺 Educational YouTube Video
+                    </h3>
+
+                    <p class="card-text">
+                        Paste lecture or current affairs video links
+                    </p>
+
+                    <input type="text"
+                        id="youtubeUrl"
+                        placeholder="Paste educational YouTube URL...">
+
+                    <button onclick="uploadYouTube()">
+                        Process Video
+                    </button>
+
                 </div>
 
             </div>
         </div>
 
-        <!-- 🎥 VIDEO PLAYER -->
-<div class="video-container">
+        <!-- VIDEO PLAYER -->
+        <div class="video-container">
 
-    <!-- Normal uploaded video -->
-    <video id="videoPlayer" controls></video>
+            <!-- Uploaded video -->
+            <video id="videoPlayer"
+                controls></video>
 
-    <!-- YouTube player -->
-    <div
-        id="youtubeContainer"
-        style="display:none;">
+            <!-- YouTube player -->
+            <div id="youtubeContainer"
+                style="display:none;">
 
-        <iframe
-    id="youtubePlayer"
-    width="100%"
-    height="300"
-    style="border:none;"
-    frameborder="0"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-    referrerpolicy="strict-origin-when-cross-origin"
-    allowfullscreen>
-</iframe>
+                <iframe id="youtubePlayer"
+                    width="100%"
+                    height="300"
+                    style="border:none;"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen>
+                </iframe>
 
-    </div>
+            </div>
 
-</div>
-        
-        <!-- 💬 CHAT -->
-        <div id="chatBox" class="chat-box"></div>
-
-        <!-- 🧠 INPUT -->
-        <div class="input-bar">
-            <input type="text" id="query" placeholder="Ask about the video...">
-            <button onclick="ask()">Ask</button>
         </div>
 
-        <!-- ⚡ ACTIONS -->
+        <!-- CHAT -->
+        <div id="chatBox"
+            class="chat-box">
+        </div>
+
+        <!-- INPUT BAR -->
+        <div class="input-bar">
+
+            <input type="text"
+                id="query"
+                placeholder="Ask doubts from your study material...">
+
+            <button onclick="ask()">
+                Ask AI
+            </button>
+
+        </div>
+
+        <!-- ACTION BUTTONS -->
         <div class="actions">
 
-    <button onclick="getSummary()">
-        📖 Summary
-    </button>
+            <button onclick="getSummary()">
+                📖 Quick Summary
+            </button>
 
-    <button onclick="getQuiz('easy')">
-        🟢 Easy Quiz
-    </button>
+            <button onclick="getQuiz('easy')">
+                🟢 Beginner Practice
+            </button>
 
-    <button onclick="getQuiz('medium')">
-        🟡 Medium Quiz
-    </button>
+            <button onclick="getQuiz('medium')">
+                🟡 Exam Level
+            </button>
 
-    <button onclick="getQuiz('hard')">
-        🔴 Hard Quiz
-    </button>
+            <button onclick="getQuiz('hard')">
+                🔴 Advanced Revision
+            </button>
 
-</div>
+        </div>
 
-        <!-- ⏳ LOADER -->
-        <div id="loader" style="display:none; text-align:center;">
+        <!-- LOADER -->
+        <div id="loader"
+            style="display:none; text-align:center;">
+
             <div class="spinner"></div>
-            <p id="progressText">Processing...</p>
 
-            <div id="progressContainer" style="display:none;">
+            <p id="progressText">
+                Processing...
+            </p>
+
+            <div id="progressContainer"
+                style="display:none;">
+
                 <div class="progress-bg">
-                    <div id="progressBar" class="progress-bar">0%</div>
+                    <div id="progressBar"
+                        class="progress-bar">
+                        0%
+                    </div>
                 </div>
-                <p id="progressStatus">Starting...</p>
+
+                <p id="progressStatus">
+                    Starting...
+                </p>
+
             </div>
+
         </div>
 
     </div>
@@ -113,4 +218,5 @@
     <script src="/static/script.js"></script>
 
 </body>
+
 </html>
