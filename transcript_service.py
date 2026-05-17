@@ -77,20 +77,22 @@ async def get_transcript(
         )
 
         transcript_data = (
-    ytt_api.fetch(
-        data.video_id,
+            ytt_api.fetch(
+                data.video_id,
+                languages=[
+                    "en",
+                    "hi",
+                    "en-IN",
+                    "hi-IN",
+                    "as",
+                    "bn"
+                ]
+            )
+        )
 
-        languages=[
-            "en",
-            "hi",
-            "en-IN",
-            "hi-IN",
-            "as",
-            "bn"
-        ]
-    )
-)
-
+        # ------------------------------------------------
+        # Full transcript text (existing behavior)
+        # ------------------------------------------------
         transcript = (
             " ".join([
                 item.text
@@ -99,15 +101,51 @@ async def get_transcript(
             ])
         )
 
+        # ------------------------------------------------
+        # Timestamp segments (NEW)
+        # ------------------------------------------------
+        segments = []
+
+        for item in transcript_data:
+
+            segments.append({
+                "text":
+                item.text,
+
+                "start":
+                item.start,
+
+                "duration":
+                item.duration
+            })
+
+        print(
+            "\n🔍 SEGMENTS SAMPLE"
+        )
+
+        print(
+            segments[:3]
+        )
+
         return {
             "success":
             True,
 
+            # Existing flow
             "transcript":
-            transcript
+            transcript,
+
+            # NEW
+            "segments":
+            segments
         }
 
     except Exception as e:
+
+        print(
+            "❌ Transcript service error:",
+            str(e)
+        )
 
         return {
             "success":
@@ -116,3 +154,14 @@ async def get_transcript(
             "error":
             str(e)
         }
+
+
+if __name__ == "__main__":
+
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000
+    )

@@ -79,3 +79,31 @@ def create_embeddings_from_chunks(chunks):
         print("❌ Embedding creation failed:", e)
 
         raise e
+
+def get_embeddings_batch(texts):
+    
+    try:
+
+        response = (
+            client.embeddings.create(
+                model=
+                "text-embedding-3-small",
+
+                input=texts
+            )
+        )
+
+        return [
+            item.embedding
+            for item
+            in response.data
+        ]
+
+    except Exception as e:
+
+        print(
+            "❌ Batch embedding error:",
+            e
+        )
+
+        raise e

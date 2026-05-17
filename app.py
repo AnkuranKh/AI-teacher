@@ -17,12 +17,13 @@ import yt_dlp
 import random
 import time
 import requests
+import numpy as np
 from http.cookiejar import MozillaCookieJar
 
 # Import your existing logic
 from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
-from utils.embeddings import create_embeddings_from_chunks
+from utils.embeddings import create_embeddings_from_chunks,get_embedding,get_embeddings_batch
 from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai,get_quiz_context
 
 app = FastAPI()
@@ -43,6 +44,8 @@ GLOBAL_CHUNKS = []
 LAST_FILE_HASH = None  # ✅ NEW
 VIDEO_UPLOADED = False
 CURRENT_EXAM = "upsc"
+SENTENCE_MAP = []
+SENTENCE_EMBEDDINGS = None
 
 HASH_PATH = "data/index/last_video_hash.txt"
 #FOLLOW UP CONVERSATIONS
@@ -56,6 +59,205 @@ UPLOAD_PROGRESS = {
     "progress": 0,
     "status": "Idle"
 }
+
+def seconds_to_timestamp(seconds):
+    
+    seconds = int(seconds)
+
+    hours = seconds // 3600
+    minutes = (
+        seconds % 3600
+    ) // 60
+
+    secs = seconds % 60
+
+    if hours > 0:
+
+        return (
+            f"{hours:02}:"
+            f"{minutes:02}:"
+            f"{secs:02}"
+        )
+
+    return (
+        f"{minutes:02}:"
+        f"{secs:02}"
+    )
+
+def build_sentence_map(
+    segments
+):
+
+    sentence_map = []
+
+    for segment in segments:
+
+        text = (
+            segment.get(
+                "text",
+                ""
+            )
+            .strip()
+        )
+
+        if not text:
+            continue
+
+        start_time = (
+            segment.get(
+                "start",
+                0
+            )
+        )
+
+        timestamp = (
+            seconds_to_timestamp(
+                start_time
+            )
+        )
+
+        sentence_map.append({
+
+            "text":
+            text,
+
+            "timestamp":
+            timestamp,
+
+            "start_seconds":
+            start_time
+        })
+
+    return sentence_map
+
+def build_sentence_embeddings():
+    
+    global SENTENCE_MAP
+    global SENTENCE_EMBEDDINGS
+
+    if not SENTENCE_MAP:
+
+        print(
+            "⚠️ No sentence map found"
+        )
+
+        return
+
+    texts = [
+        item["text"]
+        for item
+        in SENTENCE_MAP
+    ]
+
+    print(
+        "🚀 Creating sentence embeddings..."
+    )
+
+    try:
+
+        embeddings = (
+            get_embeddings_batch(
+                texts
+            )
+        )
+
+        SENTENCE_EMBEDDINGS = (
+            np.array(
+                embeddings
+            ).astype("float32")
+        )
+
+        print(
+            f"✅ Sentence embeddings ready: "
+            f"{len(texts)} sentences"
+        )
+
+    except Exception as e:
+
+        print(
+            "❌ Sentence embedding failed:",
+            str(e)
+        )
+
+        raise e
+    
+def get_answer_timestamp(
+    answer,
+    top_k=3
+):
+
+    global SENTENCE_MAP
+    global SENTENCE_EMBEDDINGS
+
+    if (
+        not SENTENCE_MAP
+        or SENTENCE_EMBEDDINGS is None
+    ):
+
+        return None
+
+    try:
+
+        # Embed answer
+        query_embedding = (
+            np.array([
+                get_embedding(answer)
+            ])
+            .astype("float32")
+        )
+
+        # Cosine similarity
+        similarities = np.dot(
+            SENTENCE_EMBEDDINGS,
+            query_embedding.T
+        ).flatten()
+
+        # Top matches
+        best_indices = (
+            np.argsort(
+                similarities
+            )[-top_k:][::-1]
+        )
+
+        timestamps = []
+
+        for idx in best_indices:
+
+            timestamps.append(
+                SENTENCE_MAP[idx]
+            )
+
+        if not timestamps:
+
+            return None
+
+        # Use best timestamp
+        best_match = (
+            timestamps[0]
+        )
+
+        print(
+            "\n📍 BEST TIMESTAMP MATCH"
+        )
+
+        print(
+            best_match
+        )
+
+        return (
+            best_match[
+                "timestamp"
+            ]
+        )
+
+    except Exception as e:
+
+        print(
+            "❌ Timestamp retrieval failed:",
+            str(e)
+        )
+
+        return None
 
 #DOWNLOAD THROUGH LINKS
 def download_youtube_audio(url):
@@ -380,8 +582,12 @@ async def upload_video(file: UploadFile = File(...)):
     print("🚀 Calling transcribe_audio()")
 
     # transcribe
-    transcript, language = transcribe_audio(temp_audio_path)
-
+    transcript, language = (
+    transcribe_audio(
+        temp_audio_path
+    )
+)
+    
     print("✅ Transcription returned successfully")
 
     if transcript is None:
@@ -443,6 +649,8 @@ async def upload_youtube(url: str):
     global CHAT_HISTORY
     global LAST_CONTEXT
     global VIDEO_UPLOADED
+    global SENTENCE_MAP
+    global SENTENCE_EMBEDDINGS
 
     LAST_CONTEXT = ""
     CHAT_HISTORY = []
@@ -469,6 +677,7 @@ async def upload_youtube(url: str):
             }
 
         transcript = None
+        segments = []
 
         # -------------------------
         # RETRY LOGIC
@@ -523,10 +732,52 @@ async def upload_youtube(url: str):
                         )
                     )
 
+                # -----------------------------------
+                # Transcript text
+                # -----------------------------------
                 transcript = (
                     result[
                         "transcript"
                     ]
+                )
+
+                # -----------------------------------
+                # Timestamp segments
+                # -----------------------------------
+                segments = result.get(
+                    "segments",
+                    []
+                )
+
+                # -----------------------------------
+                # Build sentence map
+                # -----------------------------------
+                SENTENCE_MAP = (
+                    build_sentence_map(
+                        segments
+                    )
+                )
+
+                print(
+                    "\n🔍 SENTENCE MAP SAMPLE"
+                )
+
+                print(
+                    SENTENCE_MAP[:5]
+                )
+
+                # -----------------------------------
+                # NEW:
+                # Create sentence embeddings
+                # -----------------------------------
+                build_sentence_embeddings()
+
+                print(
+                    "\n🔍 RECEIVED SEGMENTS"
+                )
+
+                print(
+                    segments[:3]
                 )
 
                 print(
@@ -678,7 +929,9 @@ async def upload_youtube(url: str):
     )
 
     GLOBAL_CHUNKS = (
-        create_chunks(transcript)
+        create_chunks(
+            transcript
+        )
     )
 
     # embeddings
@@ -882,6 +1135,7 @@ async def chat(query: str):
                 )
 
             else:
+
                 context = (
                     new_context
                 )
@@ -940,13 +1194,43 @@ Context:
 {context}
 """
 
-            # ✅ ONLY CHANGE HERE
+            # =================================
+            # ANSWER GENERATION
+            # =================================
+
             ans = generate_answer(
                 full_context,
                 q,
                 exam=CURRENT_EXAM,
                 use_context=True
             )
+
+            # =================================
+            # NEW:
+            # Semantic timestamp grounding
+            # =================================
+
+            try:
+
+                timestamp = (
+                    get_answer_timestamp(
+                        ans
+                    )
+                )
+
+                if timestamp:
+
+                    ans += (
+                        f"\n\n📍 Discussed "
+                        f"around {timestamp}"
+                    )
+
+            except Exception as e:
+
+                print(
+                    "❌ Timestamp grounding failed:",
+                    str(e)
+                )
 
         # =================================
         # NON-VIDEO QUESTION
@@ -958,7 +1242,6 @@ Context:
                 history_text
             )
 
-            # ✅ ONLY CHANGE HERE
             ans = generate_answer(
                 full_context,
                 q,
