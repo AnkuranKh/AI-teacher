@@ -23,7 +23,7 @@ from http.cookiejar import MozillaCookieJar
 from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
 from utils.embeddings import create_embeddings_from_chunks
-from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai
+from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai,get_quiz_context
 
 app = FastAPI()
 
@@ -1078,6 +1078,7 @@ async def quiz(
 
     global VIDEO_UPLOADED
     global CURRENT_EXAM
+    global GLOBAL_CHUNKS
 
     if not VIDEO_UPLOADED:
 
@@ -1086,31 +1087,14 @@ async def quiz(
             "⚠️ Please upload a video first."
         }
 
-    if not os.path.exists(
-        TRANSCRIPT_PATH
-    ):
+    if not GLOBAL_CHUNKS:
 
         return {
             "quiz":
-            "⚠️ Transcript missing."
+            "⚠️ Video content missing."
         }
 
-    with open(
-        TRANSCRIPT_PATH,
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        text = f.read()
-
-    if not text.strip():
-
-        return {
-            "quiz":
-            "⚠️ Transcript is empty."
-        }
-
-    # ✅ exam config
+    # ✅ Exam config
     exam_config = EXAM_CONFIGS.get(
         CURRENT_EXAM,
         EXAM_CONFIGS["upsc"]
@@ -1122,8 +1106,31 @@ async def quiz(
         ]
     )
 
+    # ✅ RAG retrieval
+    context = (
+        get_quiz_context(
+            GLOBAL_CHUNKS
+        )
+    )
+
+    if not context.strip():
+
+        return {
+            "quiz":
+            "⚠️ Failed to retrieve video content."
+        }
+
     prompt = f"""
 You are an expert government exam teacher.
+
+STRICT RULES:
+1. Create quiz ONLY from the provided context.
+2. Do NOT use outside knowledge.
+3. If information is missing,
+   do not invent facts.
+4. Questions must test
+   important concepts from
+   the video.
 
 Exam Mode:
 {CURRENT_EXAM.upper()}
@@ -1134,24 +1141,30 @@ Instructions:
 Difficulty:
 {difficulty.upper()}
 
-Create 5 quiz questions.
+Generate:
+5 questions
 
-Rules:
-- Make them exam-relevant
-- Match the selected exam style
-- Use transcript content
-- Include answers
-- Keep formatting clean
+Format:
 
-Transcript:
-{text}
+Q1.
+Options:
+A)
+B)
+C)
+D)
+
+Answer:
+Explanation:
+
+Context:
+{context}
 """
 
     questions = (
-    generate_quiz_openai(
-        prompt
+        generate_quiz_openai(
+            prompt
+        )
     )
-)
 
     return {
         "quiz":

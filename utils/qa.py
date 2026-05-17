@@ -133,7 +133,72 @@ def ask_question(
     # ✅ TEMP: Disable reranker for Render stability
     return results[:3]
 
+def get_quiz_context(
+    chunks,
+    k=8
+):
 
+    if not os.path.exists(
+        INDEX_PATH
+    ):
+
+        return ""
+
+    try:
+
+        # ✅ Load FAISS index
+        index = faiss.read_index(
+            INDEX_PATH
+        )
+
+        # quiz retrieval query
+        quiz_query = (
+            "important concepts "
+            "key facts "
+            "definitions "
+            "government exam topics "
+            "important current affairs "
+            "important explanations"
+        )
+
+        query_vector = (
+            get_embedding(
+                quiz_query
+            )
+        )
+
+        query_vector = np.array(
+            [query_vector]
+        ).astype(
+            "float32"
+        )
+
+        distances, indices = (
+            index.search(
+                query_vector,
+                k
+            )
+        )
+
+        results = [
+            chunks[i]
+            for i in indices[0]
+            if i < len(chunks)
+        ]
+
+        return "\n\n".join(
+            results[:6]
+        )
+
+    except Exception as e:
+
+        print(
+            "❌ Quiz retrieval error:",
+            e
+        )
+
+        return ""
+    
 # detect if question is about video
 def is_video_question(query):
 
