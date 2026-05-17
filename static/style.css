@@ -191,10 +191,10 @@ iframe {
 /* ---------- INPUTS ---------- */
 
 input {
+    width: 100%;
     padding: 16px;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    width: 100%;
     background: rgba(255, 255, 255, 0.08);
     color: white;
     outline: none;
@@ -407,9 +407,7 @@ input:disabled {
         max-width: 90%;
         font-size: 0.95rem;
     }
-    .input-bar {
-        flex-direction: column;
-    }
+    .input-bar,
     .actions {
         flex-direction: column;
     }
@@ -428,6 +426,9 @@ input:disabled {
     }
     .hero-heading {
         font-size: 1.7rem;
+    }
+    .hero-subtitle {
+        font-size: 0.9rem;
     }
     .chat-box {
         height: 280px;

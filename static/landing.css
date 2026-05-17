@@ -20,7 +20,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 60px;
+    gap: 70px;
     padding: 80px 8%;
     min-height: 100vh;
 }
@@ -101,16 +101,123 @@ h1 {
 }
 
 
+/* ---------- RIGHT CARD ---------- */
+
+.hero-card {
+    width: 430px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-radius: 32px;
+    padding: 30px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+}
+
+
+/* ---------- CARD HEADER ---------- */
+
+.card-header {
+    margin-bottom: 24px;
+}
+
+.card-header h2 {
+    margin: 0 0 10px;
+    font-size: 1.8rem;
+}
+
+.card-header p {
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.6;
+    margin: 0;
+}
+
+
+/* ---------- EXAM OPTIONS ---------- */
+
+.exam-options {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+
+/* ---------- EXAM CARD ---------- */
+
+.exam-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.exam-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(250, 204, 21, 0.25);
+    background: rgba(255, 255, 255, 0.09);
+}
+
+
+/* ---------- ACTIVE CARD ---------- */
+
+.exam-card.active {
+    border: 1px solid rgba(250, 204, 21, 0.55);
+    background: rgba(250, 204, 21, 0.08);
+    box-shadow: 0 0 24px rgba(250, 204, 21, 0.12);
+}
+
+
+/* ---------- ICON ---------- */
+
+.exam-icon {
+    font-size: 2rem;
+}
+
+
+/* ---------- TEXT ---------- */
+
+.exam-info h3 {
+    margin: 0;
+    font-size: 1.08rem;
+}
+
+.exam-info p {
+    margin: 4px 0 0;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.92rem;
+}
+
+
+/* ---------- SELECTED ---------- */
+
+.selected-exam {
+    margin-top: 22px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+#selectedExam {
+    color: #facc15;
+    font-weight: 700;
+}
+
+
 /* ---------- BUTTON ---------- */
 
 .buttons {
-    margin-top: 36px;
+    margin-top: 28px;
 }
 
 .primary-btn {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     background: linear-gradient( 135deg, #4f7cff, #8b5cf6);
     padding: 18px 30px;
     border-radius: 18px;
@@ -123,43 +230,6 @@ h1 {
 .primary-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 14px 35px rgba(79, 124, 255, 0.35);
-}
-
-
-/* ---------- RIGHT CARD ---------- */
-
-.hero-card {
-    width: 400px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    border-radius: 32px;
-    padding: 30px;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
-}
-
-
-/* ---------- MINI CARDS ---------- */
-
-.mini-card {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 22px;
-    border-radius: 20px;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.mini-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(250, 204, 21, 0.3);
-}
-
-.arrow {
-    text-align: center;
-    margin: 18px 0;
-    font-size: 2rem;
-    opacity: 0.8;
 }
 
 
@@ -183,7 +253,10 @@ h1 {
     }
     .hero-card {
         width: 100%;
-        max-width: 500px;
+        max-width: 520px;
+    }
+    .card-header {
+        text-align: center;
     }
 }
 
@@ -218,26 +291,20 @@ h1 {
     .small-text {
         font-size: 0.95rem;
     }
-    .buttons {
-        margin-top: 28px;
-    }
-    .primary-btn {
-        display: flex;
-        width: 100%;
-        text-align: center;
-    }
     .hero-card {
         width: 100%;
         padding: 22px;
         border-radius: 24px;
     }
-    .mini-card {
-        padding: 18px;
+    .exam-card {
+        padding: 16px;
         border-radius: 18px;
     }
-    .arrow {
-        margin: 14px 0;
-        font-size: 1.7rem;
+    .exam-icon {
+        font-size: 1.8rem;
+    }
+    .primary-btn {
+        padding: 16px;
     }
 }
 
@@ -260,8 +327,10 @@ h1 {
     .hero-card {
         padding: 18px;
     }
-    .mini-card {
-        padding: 16px;
-        font-size: 0.95rem;
+    .card-header h2 {
+        font-size: 1.4rem;
+    }
+    .exam-info p {
+        font-size: 0.85rem;
     }
 }

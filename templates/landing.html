@@ -17,12 +17,14 @@
 
     <link rel="stylesheet"
         href="/static/landing.css">
+
 </head>
 
 <body>
 
     <section class="hero">
 
+        <!-- LEFT SIDE -->
         <div class="hero-content">
 
             <span class="badge">
@@ -40,16 +42,27 @@
 
                 Today's students struggle with low attention span and information overload.
 
-                AI Exam Mentor helps Government Exam aspirants learn faster by turning long lectures and YouTube current affairs videos into:
+                <strong>AI Exam Mentor</strong> helps Government Exam aspirants learn faster by converting long current affairs and educational videos into:
 
             </p>
 
             <div class="benefits">
 
-                <div>📖 Smart Summaries</div>
-                <div>📝 Practice Quizzes</div>
-                <div>💬 Instant Doubt Solving</div>
-                <div>📰 Current Affairs Revision</div>
+                <div>
+                    📖 Smart Summaries
+                </div>
+
+                <div>
+                    📝 Practice Quizzes
+                </div>
+
+                <div>
+                    💬 Instant Doubt Solving
+                </div>
+
+                <div>
+                    📰 Current Affairs Revision
+                </div>
 
             </div>
 
@@ -57,41 +70,177 @@
                 Perfect for UPSC, APSC, SSC, Banking, Railway & State Government Exams.
             </p>
 
+        </div>
+
+
+        <!-- RIGHT SIDE -->
+        <div class="hero-card">
+
+            <div class="card-header">
+
+                <h2>
+                    🎯 Choose Your Target Exam
+                </h2>
+
+                <p>
+                    AI personalizes summaries, quizzes and revision according to your exam pattern.
+                </p>
+
+            </div>
+
+
+            <!-- EXAM OPTIONS -->
+
+            <div class="exam-options">
+
+                <div
+                    class="exam-card active"
+                    data-exam="upsc"
+                    data-title="UPSC">
+
+                    <div class="exam-icon">
+                        🇮🇳
+                    </div>
+
+                    <div class="exam-info">
+                        <h3>UPSC</h3>
+                        <p>
+                            Civil Services, GS, Current Affairs
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="exam-card"
+                    data-exam="apsc"
+                    data-title="APSC">
+
+                    <div class="exam-icon">
+                        🌏
+                    </div>
+
+                    <div class="exam-info">
+                        <h3>APSC</h3>
+                        <p>
+                            Assam GK, Polity, State Affairs
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="exam-card"
+                    data-exam="ssc"
+                    data-title="SSC">
+
+                    <div class="exam-icon">
+                        🏛
+                    </div>
+
+                    <div class="exam-info">
+                        <h3>SSC</h3>
+                        <p>
+                            GK, Reasoning, MCQ Practice
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="exam-card"
+                    data-exam="banking"
+                    data-title="Banking">
+
+                    <div class="exam-icon">
+                        💰
+                    </div>
+
+                    <div class="exam-info">
+                        <h3>Banking</h3>
+                        <p>
+                            Economy, Finance & Schemes
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="exam-card"
+                    data-exam="railway"
+                    data-title="Railway">
+
+                    <div class="exam-icon">
+                        🚆
+                    </div>
+
+                    <div class="exam-info">
+                        <h3>Railway</h3>
+                        <p>
+                            Static GK, Aptitude, Current Affairs
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="exam-card"
+                    data-exam="adre"
+                    data-title="ADRE">
+
+                    <div class="exam-icon">
+                        📄
+                    </div>
+
+                    <div class="exam-info">
+                        <h3>ADRE</h3>
+                        <p>
+                            Assam Govt Exam Preparation
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- SELECTED TEXT -->
+
+            <div class="selected-exam">
+
+                ✨ Personalized for:
+                <span id="selectedExam">
+                    UPSC
+                </span>
+
+            </div>
+
+
+            <!-- CTA BUTTON -->
+
             <div class="buttons">
 
-                <a href="/app" class="primary-btn">
-                    🚀 Start Learning Smarter
+                <a
+                    id="startBtn"
+                    href="/app?exam=upsc"
+                    class="primary-btn">
+
+                    🚀 Start UPSC Preparation
+
                 </a>
 
             </div>
 
         </div>
 
-        <div class="hero-card">
-
-            <div class="mini-card">
-                📺 Upload Current Affairs Video
-            </div>
-
-            <div class="arrow">
-                ↓
-            </div>
-
-            <div class="mini-card">
-                🤖 AI Understands Important Topics
-            </div>
-
-            <div class="arrow">
-                ↓
-            </div>
-
-            <div class="mini-card">
-                📖 Summary + Quiz + Ask Doubts
-            </div>
-
-        </div>
-
     </section>
+
+    <script src="/static/landing.js"></script>
 
 </body>
 
