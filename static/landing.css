@@ -1,22 +1,36 @@
+/* ---------- GLOBAL ---------- */
+
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', sans-serif;
-    background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.2), transparent 30%), radial-gradient(circle at bottom right, rgba(250, 204, 21, 0.12), transparent 35%), #071224;
     color: white;
     min-height: 100vh;
+    background: radial-gradient( circle at top left, rgba(99, 102, 241, 0.20), transparent 30%), radial-gradient( circle at bottom right, rgba(250, 204, 21, 0.12), transparent 35%), #071224;
+    overflow-x: hidden;
 }
+
+
+/* ---------- HERO ---------- */
 
 .hero {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 60px;
     padding: 80px 8%;
-    gap: 50px;
     min-height: 100vh;
 }
 
+
+/* ---------- LEFT CONTENT ---------- */
+
 .hero-content {
     flex: 1;
+    max-width: 700px;
 }
 
 .badge {
@@ -25,89 +39,229 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.12);
     padding: 10px 18px;
     border-radius: 999px;
-    margin-bottom: 25px;
+    margin-bottom: 26px;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
+
+
+/* ---------- HEADING ---------- */
 
 h1 {
     font-size: 4rem;
-    line-height: 1.2;
-    margin-bottom: 20px;
+    line-height: 1.15;
+    margin-bottom: 22px;
+    font-weight: 800;
 }
 
 .highlight {
     color: #facc15;
 }
 
+
+/* ---------- TEXT ---------- */
+
 .hero-text {
     color: rgba(255, 255, 255, 0.75);
     font-size: 1.1rem;
-    line-height: 1.8;
+    line-height: 1.9;
     max-width: 650px;
 }
+
+
+/* ---------- BENEFITS ---------- */
 
 .benefits {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-top: 30px;
-    margin-bottom: 30px;
+    gap: 16px;
+    margin-top: 34px;
+    margin-bottom: 34px;
 }
 
 .benefits div {
     background: rgba(255, 255, 255, 0.08);
-    padding: 18px;
-    border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    border-radius: 22px;
+    transition: all 0.3s ease;
 }
+
+.benefits div:hover {
+    transform: translateY(-3px);
+    border-color: rgba(250, 204, 21, 0.3);
+}
+
+
+/* ---------- SMALL TEXT ---------- */
 
 .small-text {
     color: rgba(255, 255, 255, 0.6);
+    line-height: 1.7;
 }
 
+
+/* ---------- BUTTON ---------- */
+
 .buttons {
-    margin-top: 35px;
+    margin-top: 36px;
 }
 
 .primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: linear-gradient( 135deg, #4f7cff, #8b5cf6);
     padding: 18px 30px;
     border-radius: 18px;
     color: white;
     text-decoration: none;
     font-weight: 600;
+    transition: all 0.3s ease;
 }
 
+.primary-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 35px rgba(79, 124, 255, 0.35);
+}
+
+
+/* ---------- RIGHT CARD ---------- */
+
 .hero-card {
-    width: 380px;
+    width: 400px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
-    border-radius: 30px;
+    border-radius: 32px;
     padding: 30px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
 }
+
+
+/* ---------- MINI CARDS ---------- */
 
 .mini-card {
     background: rgba(255, 255, 255, 0.08);
-    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 22px;
     border-radius: 20px;
     text-align: center;
+    transition: all 0.3s ease;
+}
+
+.mini-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(250, 204, 21, 0.3);
 }
 
 .arrow {
     text-align: center;
     margin: 18px 0;
     font-size: 2rem;
+    opacity: 0.8;
 }
 
-@media(max-width: 900px) {
+
+/* ---------- TABLET ---------- */
+
+@media(max-width:1024px) {
     .hero {
         flex-direction: column;
         text-align: center;
+        padding: 60px 6%;
+        gap: 45px;
     }
     h1 {
-        font-size: 2.6rem;
+        font-size: 3rem;
+    }
+    .hero-content {
+        max-width: 100%;
+    }
+    .hero-text {
+        max-width: 100%;
     }
     .hero-card {
         width: 100%;
+        max-width: 500px;
+    }
+}
+
+
+/* ---------- MOBILE ---------- */
+
+@media(max-width:768px) {
+    .hero {
+        padding: 40px 20px;
+        gap: 35px;
+    }
+    .badge {
+        font-size: 0.88rem;
+        padding: 8px 14px;
+    }
+    h1 {
+        font-size: 2.2rem;
+        line-height: 1.3;
+    }
+    .hero-text {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+    .benefits {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .benefits div {
+        padding: 18px;
+        border-radius: 18px;
+    }
+    .small-text {
+        font-size: 0.95rem;
+    }
+    .buttons {
+        margin-top: 28px;
+    }
+    .primary-btn {
+        display: flex;
+        width: 100%;
+        text-align: center;
+    }
+    .hero-card {
+        width: 100%;
+        padding: 22px;
+        border-radius: 24px;
+    }
+    .mini-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+    .arrow {
+        margin: 14px 0;
+        font-size: 1.7rem;
+    }
+}
+
+
+/* ---------- SMALL MOBILE ---------- */
+
+@media(max-width:480px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+    .hero-text {
+        font-size: 0.95rem;
+    }
+    .small-text {
+        font-size: 0.9rem;
+    }
+    .badge {
+        font-size: 0.8rem;
+    }
+    .hero-card {
+        padding: 18px;
+    }
+    .mini-card {
+        padding: 16px;
+        font-size: 0.95rem;
     }
 }
