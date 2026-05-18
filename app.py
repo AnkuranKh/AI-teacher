@@ -44,6 +44,8 @@ CURRENT_EXAM = "upsc"
 SENTENCE_MAP = []
 SENTENCE_EMBEDDINGS = None
 
+USER_SESSIONS = {}
+
 HASH_PATH = "data/index/last_video_hash.txt"
 #FOLLOW UP CONVERSATIONS
 CHAT_HISTORY = []
@@ -56,6 +58,50 @@ UPLOAD_PROGRESS = {
     "progress": 0,
     "status": "Idle"
 }
+
+#SEPARATE SESSIONS FOR EACH USER
+def get_user_session(
+    session_id
+):
+
+    global USER_SESSIONS
+
+    if session_id not in USER_SESSIONS:
+
+        USER_SESSIONS[
+            session_id
+        ] = {
+
+            "chunks": [],
+
+            "chat_history": [],
+
+            "last_context": "",
+
+            "video_uploaded": False,
+
+            "current_exam":
+            "upsc",
+
+            "sentence_map":
+            [],
+
+            "sentence_embeddings":
+            None,
+
+            "last_video_hash":
+            None
+        }
+
+        print(
+            f"🆕 New session created: "
+            f"{session_id}"
+        )
+
+    return USER_SESSIONS[
+        session_id
+    ]
+
 
 def seconds_to_timestamp(seconds):
     
