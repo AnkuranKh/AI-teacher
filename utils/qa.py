@@ -53,6 +53,41 @@ def get_embedding(text):
         )
         raise e
 
+def get_summary_chunks(
+    chunks,
+    num_chunks=20
+):
+
+    """
+    Select representative chunks
+    across the whole video.
+    """
+
+    if not chunks:
+        return []
+
+    if len(chunks) <= num_chunks:
+        return chunks
+
+    step = max(
+        1,
+        len(chunks) // num_chunks
+    )
+
+    selected_chunks = [
+        chunks[i]
+        for i in range(
+            0,
+            len(chunks),
+            step
+        )
+    ]
+
+    return (
+        selected_chunks[
+            :num_chunks
+        ]
+    )
 
 # Expand query for better retrieval
 def expand_query(query):
@@ -146,12 +181,13 @@ def get_quiz_context(
 
     try:
 
-        # ✅ Load FAISS index
         index = faiss.read_index(
             INDEX_PATH
         )
 
-        # quiz retrieval query
+        # ----------------------
+        # Semantic retrieval
+        # ----------------------
         quiz_query = (
             "important concepts "
             "key facts "
@@ -180,14 +216,46 @@ def get_quiz_context(
             )
         )
 
-        results = [
+        semantic_chunks = [
             chunks[i]
             for i in indices[0]
             if i < len(chunks)
         ]
 
+        # ----------------------
+        # Representative chunks
+        # ----------------------
+        representative = (
+            get_summary_chunks(
+                chunks,
+                num_chunks=4
+            )
+        )
+
+        # ----------------------
+        # Merge + deduplicate
+        # ----------------------
+        combined = []
+
+        seen = set()
+
+        for chunk in (
+            semantic_chunks
+            + representative
+        ):
+
+            if chunk not in seen:
+
+                combined.append(
+                    chunk
+                )
+
+                seen.add(
+                    chunk
+                )
+
         return "\n\n".join(
-            results[:6]
+            combined[:8]
         )
 
     except Exception as e:

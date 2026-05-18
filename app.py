@@ -24,7 +24,7 @@ from http.cookiejar import MozillaCookieJar
 from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
 from utils.embeddings import create_embeddings_from_chunks,get_embedding,get_embeddings_batch
-from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai,get_quiz_context
+from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai,get_quiz_context,get_summary_chunks
 
 app = FastAPI()
 
@@ -1287,26 +1287,11 @@ async def summary():
             "⚠️ Please upload a video first."
         }
 
-    if not os.path.exists(
-        TRANSCRIPT_PATH
-    ):
+    if not GLOBAL_CHUNKS:
+
         return {
             "summary":
-            "⚠️ Transcript missing. Please re-upload the video."
-        }
-
-    with open(
-        TRANSCRIPT_PATH,
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        text = f.read()
-
-    if not text.strip():
-        return {
-            "summary":
-            "⚠️ Transcript is empty. Please upload video again."
+            "⚠️ Video chunks missing. Please re-upload the video."
         }
 
     # ✅ Exam config
@@ -1321,8 +1306,24 @@ async def summary():
         ]
     )
 
+    # --------------------------------
+    # RAG-style summary context
+    # --------------------------------
+    summary_chunks = (
+        get_summary_chunks(
+            GLOBAL_CHUNKS,
+            num_chunks=20
+        )
+    )
+
+    context = (
+        "\n\n".join(
+            summary_chunks
+        )
+    )
+
     prompt = f"""
-You are an expert teacher helping students revise quickly.
+You are an expert AI Exam Mentor.
 
 Exam Mode:
 {CURRENT_EXAM.upper()}
@@ -1330,17 +1331,46 @@ Exam Mode:
 Instructions:
 {summary_style}
 
+STRICT RULES:
+
+1. VIDEO SUMMARY
+- Summarize ONLY what exists
+  in the provided context.
+- Do NOT add outside facts.
+- Do NOT assume concepts not
+  discussed in the video.
+- Stay fully grounded in the lecture.
+
+2. EXAM PERSPECTIVE
+- Explain why this topic may
+  matter for {CURRENT_EXAM.upper()}.
+- Mention possible areas of focus
+  relevant to the exam.
+
+3. ADDITIONAL INFORMATION
+- You MAY add important
+  exam-relevant information
+  not covered in the video.
+
+IMPORTANT:
+- Clearly separate this section.
+- Explicitly mention:
+  "This information was not
+  covered in the video but
+  is important from an exam
+  perspective."
+
 Keep the summary:
 - Student friendly
 - Structured
 - Easy to revise
 - Exam focused
+- Well formatted
 
-Transcript:
-{text}
+Lecture Context:
+{context}
 """
 
-    # ✅ OPENAI summary
     summary = (
         generate_summary_openai(
             prompt
