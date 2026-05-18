@@ -14,9 +14,6 @@ import hashlib
 import glob
 import re
 import yt_dlp
-import random
-import time
-import requests
 import numpy as np
 from http.cookiejar import MozillaCookieJar
 
@@ -749,29 +746,6 @@ async def upload_youtube(url: str):
                     []
                 )
 
-                # -----------------------------------
-                # Build sentence map
-                # -----------------------------------
-                SENTENCE_MAP = (
-                    build_sentence_map(
-                        segments
-                    )
-                )
-
-                print(
-                    "\n🔍 SENTENCE MAP SAMPLE"
-                )
-
-                print(
-                    SENTENCE_MAP[:5]
-                )
-
-                # -----------------------------------
-                # NEW:
-                # Create sentence embeddings
-                # -----------------------------------
-                build_sentence_embeddings()
-
                 print(
                     "\n🔍 RECEIVED SEGMENTS"
                 )
@@ -907,6 +881,29 @@ async def upload_youtube(url: str):
     print(
         "🆕 New YouTube video detected"
     )
+
+    # -----------------------------------
+    # Build sentence map (NEW VIDEO ONLY)
+    # -----------------------------------
+    SENTENCE_MAP = (
+        build_sentence_map(
+            segments
+        )
+    )
+
+    print(
+        "\n🔍 SENTENCE MAP SAMPLE"
+    )
+
+    print(
+        SENTENCE_MAP[:5]
+    )
+
+    # -----------------------------------
+    # Sentence embeddings
+    # (NEW VIDEO ONLY)
+    # -----------------------------------
+    build_sentence_embeddings()
 
     # save transcript
     UPLOAD_PROGRESS["progress"] = 70
