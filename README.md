@@ -10,11 +10,7 @@ Designed to reduce **information overload** and help students learn smarter from
 ## 🌐 Live Demo
 
 **Deployed Website:**  
-(Add your Render deployed link here)
-
-Example:
-
-https://your-render-link.onrender.com
+(https://ai-teacher-afu6.onrender.com)
 
 ---
 
