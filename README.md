@@ -228,7 +228,7 @@ Work directly through deployment.
 
 Require the transcript mini-server to be running.
 
-If you want to test YouTube uploads, please contact the repository owner.
+If you want to test YouTube uploads, please contact me.
 
 ---
 
@@ -326,7 +326,7 @@ Before contributing:
 2. Add required API keys
 3. Ensure transcript service is configured
 
-For YouTube transcript testing, contact the repository owner.
+For YouTube transcript testing, contact me.
 
 ---
 
