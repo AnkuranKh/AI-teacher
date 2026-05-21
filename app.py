@@ -6,6 +6,7 @@ from youtube_transcript_api import (
     YouTubeTranscriptApi
 )
 from utils.exam_profiles import EXAM_CONFIGS
+from dotenv import load_dotenv
 import os
 import shutil
 import subprocess
@@ -22,6 +23,9 @@ from utils.transcribe import transcribe_audio
 from utils.chunk import create_chunks
 from utils.embeddings import create_embeddings_from_chunks,get_embedding,get_embeddings_batch
 from utils.qa import ask_question, generate_answer, is_video_question,is_follow_up_query,generate_summary_openai,generate_quiz_openai,get_quiz_context,get_summary_chunks
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI()
 
@@ -743,7 +747,12 @@ async def upload_youtube(url: str):
                 time.sleep(wait_time)
 
                 transcript_service = os.getenv(
-                    "TRANSCRIPT_SERVICE_URL"
+                "TRANSCRIPT_SERVICE_URL"
+                )
+
+                if not transcript_service:
+                    raise Exception(
+                    "TRANSCRIPT_SERVICE_URL not set"
                 )
 
                 print(
